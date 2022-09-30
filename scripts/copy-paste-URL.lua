@@ -2,15 +2,37 @@ function trim(s)
    return (s:gsub("^%s*(%S+)%s*", "%1"))
 end
 
+function check_os()
+	local os_path = package.config:sub(1,1)
+
+	if os_path == '\\' then
+		return 'windows'
+	elseif os_path == '/' then
+		return 'linux'
+	end
+
+end
+
 function openURL()
    
-   subprocess = {
-      name = "subprocess",
-      args = { "powershell", "-Command", "Get-Clipboard", "-Raw" },
-      playback_only = false,
-      capture_stdout = true,
-      capture_stderr = true
-   }
+	local g = check_os()
+	if g == 'linux' then 
+		subprocess = {
+		name = "subprocess",
+		args = { "xclip", "-o","-selection","clipboard"},
+		playback_only = false,
+		capture_stdout = true,
+		capture_stderr = true
+			}
+	elseif g == 'windows' then 
+		subprocess = {
+		name = "subprocess",
+		args = { "powershell", "-Command", "Get-Clipboard", "-Raw" },
+		playback_only = false,
+		capture_stdout = true,
+		capture_stderr = true
+			}
+	end
    
    mp.osd_message("Getting URL from clipboard...")
    
