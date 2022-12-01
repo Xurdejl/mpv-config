@@ -20,10 +20,10 @@ local user_opts = {
     showfullscreen = true,      -- show OSC when fullscreen?
     idlescreen = true,          -- draw logo and text when idle
     scalewindowed = 1.0,        -- scaling of the controller when windowed
-    scalefullscreen = 1.0,      -- scaling of the controller when fullscreen
+    scalefullscreen = 0.8,      -- scaling of the controller when fullscreen
     scaleforcedwindow = 2.0,    -- scaling when rendered on a forced window
     vidscale = true,            -- scale the controller with the video?
-    hidetimeout = 1500,         -- duration in ms until the OSC hides if no
+    hidetimeout = 1000,         -- duration in ms until the OSC hides if no
                                 -- mouse movement. enforced non-negative for the
                                 -- user, but internally negative is 'always-on'.
     fadeduration = 250,         -- duration of fade out in ms, 0 = no fade
@@ -52,7 +52,7 @@ local user_opts = {
     timems = false,             -- Display time down to millliseconds by default
     visibility = 'auto',        -- only used at init to set visibility_mode(...)
     windowcontrols = 'auto',    -- whether to show window controls
-    language = 'eng',		-- eng=English, chs=Chinese
+    language = 'spa',		-- eng=English, chs=Chinese
     keyboardnavigation = false, -- enable directional keyboard navigation
     chapter_fmt = "Chapter: %s", -- chapter print format for seekbar-hover. "no" to disable
 }
@@ -125,6 +125,21 @@ local language = {
 		nolist = 'Lista odtwarzania pusta.',
 		chapter = 'Rozdział',
 		nochapter = 'Brak rozdziałów.',
+	},
+    	['spa'] = {
+	    welcome = '{\\fs24\\1c&H0&\\1c&HFFFFFF&}Suelte los archivos o URLs para reproducir aquí.',  -- this text appears when mpv starts
+		off = 'OFF',
+		na = 'n/a',
+		none = 'ninguno',
+		video = 'Vídeo',
+		audio = 'Audio',
+		subtitle = 'Subtítulo',
+		available = 'Disponible  ',
+		track = ' Pistas:',
+		playlist = 'Lista de reproducción',
+		nolist = 'Lista de reproducción vacía.',
+		chapter = 'Capítulo',
+		nochapter = 'No hay capítulos.',
 	}
 }
 -- read options from config and command-line
@@ -2123,9 +2138,10 @@ function process_event(source, what)
 end
 
 function show_logo()
-	local osd_w, osd_h = 640, 360
-	local logo_x, logo_y = osd_w/2, osd_h/2-20
-	local ass = assdraw.ass_new()
+	local osd_w, osd_h, osd_aspect = mp.get_osd_size()
+    	osd_w, osd_h = 360*osd_aspect, 360
+   	local logo_x, logo_y = osd_w/2, osd_h/2-20
+    	local ass = assdraw.ass_new()
 	ass:new_event()
 	ass:pos(logo_x, logo_y)
 	ass:append('{\\1c&H8E348D&\\3c&H0&\\3a&H60&\\blur1\\bord0.5}')
