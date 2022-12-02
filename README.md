@@ -1,6 +1,6 @@
 # MPV config files
 
-<img src="https://raw.githubusercontent.com/cyl0/MordenX/main/preview.png"/>
+<img src="https://raw.githubusercontent.com/cyl0/ModernX/main/preview.png"/>
 
 ## Shaders
 
@@ -33,5 +33,5 @@ Paste URLs directly from clipboard into mpv.
 - **[autoloop](https://github.com/zc62/mpv-scripts/blob/master/autoloop.lua)**  
 Automatically loops files that are under a given duration (default 5 seconds).
 
-- **[MordenX](https://github.com/cyl0/MordenX)**  
+- **[ModernX](https://github.com/cyl0/ModernX)**  
 A modern OSC UI replacement for MPV that retains the functionality of the default OSC.
