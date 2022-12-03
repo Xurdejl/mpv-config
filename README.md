@@ -4,17 +4,17 @@
 
 ## Shaders
 
+- **[ACNet](https://github.com/TianZerL/ACNetGLSL/releases/tag/v1.0.0)**  
+ACNet is a CNN algorithm, implemented by [Anime4KCPP](https://github.com/TianZerL/Anime4KCPP), it aims to provide both high-quality and high-performance.
+
 - **[FSRCNN](https://github.com/igv/FSRCNN-TensorFlow/releases)**  
-Prescaler based on layered convolutional networks. [FSRCNNX-Enhance](https://github.com/HelpSeeker/FSRCNN-TensorFlow/releases/tag/1.1_distort) for anime.
+Prescaler based on layered convolutional networks.
     
 -   **[SSimDownscaler, SSimSuperRes, Krig, Adaptive Sharpen, etc.](https://gist.github.com/igv)**
     
     -   SSimDownscaler: Perceptually based downscaler. More information is [here](https://graphics.ethz.ch/~cengizo/imageDownscaling.htm).
     -   SSimSuperRes: The aim of this shader is to make corrections to the image upscaled by mpv built-in scaler (removes ringing artifacts, restores original sharpness, etc).
     -   Krig: Chroma scaler that uses luma information for high quality upscaling.
- 
- - **[ACNet](https://github.com/TianZerL/ACNetGLSL/releases/tag/v1.0.0)**  
-ACNet is a CNN algorithm, implemented by [Anime4KCPP](https://github.com/TianZerL/Anime4KCPP), it aims to provide both high-quality and high-performance.
 
 ## Scripts
 
