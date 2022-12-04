@@ -2534,7 +2534,7 @@ function visibility_mode(mode, no_osd)
     end
 
     -- Reset the input state on a mode change. The input state will be
-    -- recalcuated on the next render cycle, except in 'never' mode where it
+    -- recalculated on the next render cycle, except in 'never' mode where it
     -- will just stay disabled.
     mp.disable_key_bindings('input')
     mp.disable_key_bindings('window-controls')
