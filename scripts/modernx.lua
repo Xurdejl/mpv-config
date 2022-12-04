@@ -1583,7 +1583,7 @@ function osc_init()
         function () set_track('audio', 1) end
     ne.eventresponder['mbtn_right_up'] =
         function () set_track('audio', -1) end
-    ne.eventresponder['mbtn_mid_up'] =
+    ne.eventresponder['shift+mbtn_left_down'] =
         function () show_message(get_tracklist('audio')) end
     ne.eventresponder['enter'] =
         function () set_track('audio', 1); show_message(get_tracklist('audio')) end
@@ -1616,7 +1616,7 @@ function osc_init()
         function () set_track('sub', 1) end
     ne.eventresponder['mbtn_right_up'] =
         function () set_track('sub', -1) end
-    ne.eventresponder['mbtn_mid_up'] =
+    ne.eventresponder['shift+mbtn_left_down'] =
         function () show_message(get_tracklist('sub')) end
     ne.eventresponder['enter'] =
         function () set_track('sub', 1); show_message(get_tracklist('sub')) end
