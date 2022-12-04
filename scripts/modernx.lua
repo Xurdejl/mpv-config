@@ -500,7 +500,7 @@ end
 -- return a nice list of tracks of the given type (video, audio, sub)
 function get_tracklist(type)
     local msg = texts.available .. nicetypes[type] .. texts.track
-    if #tracks_osc[type] == 0 then
+    if not tracks_osc or #tracks_osc[type] == 0 then
         msg = msg .. texts.none
     else
         for n = 1, #tracks_osc[type] do
