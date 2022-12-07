@@ -71,6 +71,7 @@ local icons = {
   previous = '\239\142\181',
   next = '\239\142\180',
   play = '\239\142\170',
+  replay = '\239\142\178',
   pause = '\239\142\167',
   backward = '\239\142\160',
   forward = '\239\142\159',
@@ -114,7 +115,6 @@ local language = {
 		nolist = '无列表信息',
 		chapter = '章节',
 		nochapter = '无章节信息',
-	},
 	},
     	['spa'] = {
 	    welcome = '{\\fs24\\1c&H0&\\1c&HFFFFFF&}Suelta archivos o URLs aquí para reproducir.',  -- this text appears when mpv starts
@@ -188,7 +188,6 @@ local state = {
     enabled = true,
     input_enabled = true,
     showhide_enabled = false,
-    windowcontrols_buttons = false,
     dmx_cache = 0,
     border = true,
     maximized = false,
@@ -1443,14 +1442,23 @@ function osc_init()
     ne = new_element('playpause', 'button')
 
     ne.content = function ()
-        if mp.get_property('pause') == 'yes' then
+        if mp.get_property('eof-reached') == 'yes' then
+            return (icons.replay)
+        elseif mp.get_property('pause') == 'yes' then
             return (icons.play)
         else
             return (icons.pause)
         end
     end
     ne.eventresponder['mbtn_left_up'] =
-        function () mp.commandv('cycle', 'pause') end
+        function ()
+            if mp.get_property('eof-reached') == 'yes' then
+                mp.commandv('seek', 0, 'absolute-percent')
+                mp.commandv('set', 'pause', 'no')
+            else
+                mp.commandv('cycle', 'pause')
+            end
+        end
     --ne.eventresponder['mbtn_right_up'] =
     --    function () mp.commandv('script-binding', 'open-file-dialog') end
 
