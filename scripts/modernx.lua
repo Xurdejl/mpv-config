@@ -188,6 +188,7 @@ local state = {
     enabled = true,
     input_enabled = true,
     showhide_enabled = false,
+    windowcontrols_buttons = false,
     dmx_cache = 0,
     border = true,
     maximized = false,
