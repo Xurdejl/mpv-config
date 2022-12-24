@@ -1563,7 +1563,7 @@ function osc_init()
     ne.tooltipF = function ()
 		local msg = texts.off
         if not (get_track('audio') == 0) then
-            msg = (texts.audio .. ' [' .. get_track('audio') .. ' ∕ ' .. #tracks_osc.audio .. '] ')
+            msg = (texts.audio .. ' [' .. get_track('audio') .. ' / ' .. #tracks_osc.audio .. '] ')
             local prop = mp.get_property('current-tracks/audio/title') --('current-tracks/audio/lang')
             if not prop then
 				prop = texts.na
@@ -1596,7 +1596,7 @@ function osc_init()
     ne.tooltipF = function ()
 		local msg = texts.off
         if not (get_track('sub') == 0) then
-            msg = (texts.subtitle .. ' [' .. get_track('sub') .. ' ∕ ' .. #tracks_osc.sub .. '] ')
+            msg = (texts.subtitle .. ' [' .. get_track('sub') .. ' / ' .. #tracks_osc.sub .. '] ')
             local prop = mp.get_property('current-tracks/sub/lang')
             if not prop then
 				prop = texts.na
