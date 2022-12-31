@@ -78,10 +78,10 @@ local icons = {
   audio = '\239\142\183',
   volume = '\239\142\188',
   volume_mute = '\239\142\187',
-  sub = '\239\143\147',
+  sub = '\239\140\164',
   minimize = '\239\133\172',
   fullscreen = '\239\133\173',  
-  info = '',
+  info = '\239\135\183',
 }
 
 -- Localization
