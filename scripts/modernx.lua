@@ -160,7 +160,7 @@ local osc_styles = {
     timecodes = "{\\blur0\\bord0\\1c&HFFFFFF&\\3c&H000000&\\fs17\\fn" .. user_opts.font .. "}",
     tooltip = "{\\blur1\\bord0.5\\1c&HFFFFFF&\\3c&H000000&\\fs18\\fn" .. user_opts.font .. "}",
 
-    vidTitle = "{\\blur1\\bord0.5\\1c&HFFFFFF&\\3c&H0\\fs32\\q2\\fn" .. user_opts.font .. "}",
+    vidTitle = "{\\blur1\\bord0.5\\1c&HFFFFFF&\\3c&H0\\fs24\\q2\\fn" .. user_opts.font .. "}",
     wcButtons = "{\\blur1\\bord0.5\\1c&HFFFFFF&\\3c&H0\\fs20\\fnmpv-osd-symbols}",
     elementDown = "{\\1c&H999999&}",
     elementHighlight = "{\\blur1\\bord1\\1c&HFFC033&}",
@@ -1237,16 +1237,21 @@ layouts = function ()
     --
     -- Seekbar
     --
+    local seekbarMarginX = 216
+    if state.fulltime then
+        seekbarMarginX = 264
+    end
+
     new_element("seekbarBg", "box")
     lo = add_layout("seekbarBg")
-    lo.geometry = {x = refX , y = refY - 96 , an = 5, w = osc_geo.w - 50, h = 2}
+    lo.geometry = {x = refX , y = refY - 86 , an = 5, w = osc_geo.w - seekbarMarginX, h = 2}
     lo.layer = 13
     lo.style = osc_styles.seekbarBg
     lo.alpha[1] = 128
     lo.alpha[3] = 128
 
     lo = add_layout("seekbar")
-    lo.geometry = {x = refX, y = refY - 96 , an = 5, w = osc_geo.w - 50, h = 16}
+    lo.geometry = {x = refX, y = refY - 86 , an = 5, w = osc_geo.w - seekbarMarginX, h = 16}
     lo.style = osc_styles.seekbarFg
     lo.slider.gap = 7
     lo.slider.tooltip_style = osc_styles.tooltip
@@ -1261,13 +1266,13 @@ layouts = function ()
     lo = new_element("volumebarBg", "box")
     lo.visible = user_opts.volumecontrol and osc_param.display_aspect >= 1.33
     lo = add_layout("volumebarBg")
-    lo.geometry = {x = 155, y = refY - 40, an = 4, w = 80, h = 2}
+    lo.geometry = {x = osc_geo.w - 155, y = refY - 40, an = 4, w = 80, h = 2}
     lo.layer = 13
     lo.style = osc_styles.volumebarBg
 
 
     lo = add_layout("volumebar")
-    lo.geometry = {x = 155, y = refY - 40, an = 4, w = 80, h = 8}
+    lo.geometry = {x = osc_geo.w - 155, y = refY - 40, an = 4, w = 80, h = 8}
     lo.style = osc_styles.volumebarFg
     lo.slider.gap = 3
     lo.slider.tooltip_style = osc_styles.tooltip
@@ -1314,40 +1319,43 @@ layouts = function ()
 
     -- Timecode
     lo = add_layout("tc_left")
-    lo.geometry = {x = 25, y = refY - 84, an = 7, w = 64, h = 20}
+    lo.geometry = {x = 25, y = refY - 94, an = 7, w = 64, h = 20}
     lo.style = osc_styles.timecodes      
 
     lo = add_layout("tc_right")
-    lo.geometry = {x = osc_geo.w - 25 , y = refY -84, an = 9, w = 64, h = 20}
+    lo.geometry = {x = osc_geo.w - 25 , y = refY -94, an = 9, w = 64, h = 20}
     lo.style = osc_styles.timecodes
 
     lo = add_layout("cy_audio")
-    lo.geometry = {x = 37, y = refY - 40, an = 5, w = 24, h = 24}
+    lo.geometry = {x = osc_geo.w - 262, y = refY - 40, an = 5, w = 24, h = 24}
     lo.style = osc_styles.smallButtons
+    if osc_param.display_aspect < 1.33 then lo.geometry.x = osc_geo.w - 167 end
         
     lo = add_layout("cy_sub")
-    lo.geometry = {x = 87, y = refY - 40, an = 5, w = 24, h = 24}
+    lo.geometry = {x = osc_geo.w - 218, y = refY - 40, an = 5, w = 24, h = 24}
     lo.style = osc_styles.smallButtons
+    if osc_param.display_aspect < 1.33 then lo.geometry.x = osc_geo.w - 127 end
 
     lo = add_layout("volume")
-    lo.geometry = {x = 137, y = refY - 40, an = 5, w = 24, h = 24}
+    lo.geometry = {x = osc_geo.w - 175, y = refY - 40, an = 5, w = 24, h = 24}
     lo.style = osc_styles.smallButtons
-    if osc_param.display_aspect <= 0.56 then lo.geometry.x = osc_geo.w - 87 end
+    if osc_param.display_aspect < 1.33 then lo.geometry.x = osc_geo.w - 87 end
 
-    lo = add_layout("tog_info")
-    lo.geometry = {x = osc_geo.w - 87, y = refY - 40, an = 5, w = 24, h = 24}
-    lo.style = osc_styles.smallButtons
+    -- lo = add_layout("tog_info")
+    -- lo.geometry = {x = osc_geo.w - 87, y = refY - 40, an = 5, w = 24, h = 24}
+    -- lo.style = osc_styles.smallButtons
     
     lo = add_layout("tog_fs")
     lo.geometry = {x = osc_geo.w - 37, y = refY - 40, an = 5, w = 24, h = 24}
     lo.style = osc_styles.smallButtons  
 
-    geo = { x = 25, y = refY - 124, an = 1, w = osc_geo.w - 50, h = 48 }
+    geo = { x = 25, y = refY - 28, an = 1, w = osc_geo.w - 50, h = 48 }
     lo = add_layout("title")
     lo.geometry = geo
-    lo.style = string.format("%s{\\clip(%f,%f,%f,%f)}", osc_styles.vidTitle,
+    lo.style = string.format("%s{\\clip(0,%f,%f,%f)}", osc_styles.vidTitle,
                                 geo.x, geo.y - geo.h, geo.x + geo.w , geo.y)
     lo.alpha[3] = 0
+    lo.button.maxchars = geo.w / 28
 end
 
 -- Validate string type user options
@@ -1558,6 +1566,7 @@ function osc_init()
     
     --cy_audio
     ne = new_element("cy_audio", "button")
+    ne.visible = osc_param.display_aspect >= 1.0
     ne.enabled = (#tracks_osc.audio > 0)
     ne.off = (get_track("audio") == 0)
     ne.content = icons.audio
@@ -1652,11 +1661,11 @@ function osc_init()
         function () mp.commandv("cycle", "fullscreen") end
 
     --tog_info
-    ne = new_element("tog_info", "button")
-    ne.content = icons.info
-    ne.visible = osc_param.display_aspect >= 0.56
-    ne.eventresponder["mbtn_left_up"] =
-        function () mp.commandv("script-binding", "stats/display-stats-toggle") end
+    -- ne = new_element("tog_info", "button")
+    -- ne.content = icons.info
+    -- ne.visible = osc_param.display_aspect >= 0.56
+    -- ne.eventresponder["mbtn_left_up"] =
+    --     function () mp.commandv("script-binding", "stats/display-stats-toggle") end
 
     -- title
     ne = new_element("title", "button")
