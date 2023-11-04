@@ -33,7 +33,7 @@ local user_opts = {
                                 -- internal track list management (and some
                                 -- functions that depend on it)
     font = "mpv-osd-symbols",   -- default osc font
-    seekbarhandlesize = 0.6,    -- size ratio of the slider handle, range 0 ~ 1
+    seekbarhandlesize = 0.8,    -- size ratio of the slider handle, range 0 ~ 1
     seekrange = true,           -- show seekrange overlay
     seekrangealpha = 64,        -- transparency of seekranges
     seekbarkeyframes = true,    -- use keyframes when dragging the seekbar
