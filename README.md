@@ -24,4 +24,6 @@
 
 - **[uosc](https://github.com/tomasklaen/uosc)** - Feature-rich minimalist proximity-based UI for MPV player.
 
+- **[thumbfast](https://github.com/po5/thumbfast)** - High-performance on-the-fly thumbnailer script for mpv.
+
 - **[open-file-dialog](https://github.com/rossy/mpv-open-file-dialog)** - Launches a regular Windows file open dialog for loading videos (Windows).
