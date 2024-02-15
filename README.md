@@ -26,4 +26,4 @@
 
 - **[thumbfast](https://github.com/po5/thumbfast)** - High-performance on-the-fly thumbnailer script for mpv.
 
-- **[open-file-dialog](https://github.com/rossy/mpv-open-file-dialog)** - Launches a regular Windows file open dialog for loading videos (Windows).
+- **[webm](https://github.com/ekisu/mpv-webm)** - Quickly create video clips.
