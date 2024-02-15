@@ -6,14 +6,14 @@ local cache = {}
 function get_languages()
 	local languages = {}
 
-	for _, lang in ipairs(split(options.languages, ',')) do
+	for _, lang in ipairs(comma_split(options.languages)) do
 		if (lang == 'slang') then
 			local slang = mp.get_property_native('slang')
 			if slang then
 				itable_append(languages, slang)
 			end
 		else
-			itable_append(languages, {lang})
+			languages[#languages +1] = lang
 		end
 	end
 
@@ -26,18 +26,19 @@ function get_locale_from_json(path)
 
 	local meta, meta_error = utils.file_info(expand_path)
 	if not meta or not meta.is_file then
-		return {}
+		return nil
 	end
 
 	local json_file = io.open(expand_path, 'r')
 	if not json_file then
-		return {}
+		return nil
 	end
 
 	local json = json_file:read('*all')
 	json_file:close()
 
-	return utils.parse_json(json)
+	local json_table = utils.parse_json(json)
+	return json_table
 end
 
 ---@param text string

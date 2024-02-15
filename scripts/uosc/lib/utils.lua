@@ -1,11 +1,59 @@
 --[[ UI specific utilities that might or might not depend on its state or options ]]
 
 ---@alias Point {x: number; y: number}
----@alias Rect {ax: number, ay: number, bx: number, by: number}
+---@alias Rect {ax: number, ay: number, bx: number, by: number, window_drag?: boolean}
+---@alias Circle {point: Point, r: number, window_drag?: boolean}
+---@alias Hitbox Rect|Circle
 
 --- In place sorting of filenames
 ---@param filenames string[]
-function sort_filenames(filenames)
+
+-- String sorting
+do
+	----- winapi start -----
+	-- in windows system, we can use the sorting function provided by the win32 API
+	-- see https://learn.microsoft.com/en-us/windows/win32/api/shlwapi/nf-shlwapi-strcmplogicalw
+	-- this function was taken from https://github.com/mpvnet-player/mpv.net/issues/575#issuecomment-1817413401
+	local winapi = nil
+
+	if state.platform == 'windows' and config.refine.sorting then
+		-- is_ffi_loaded is false usually means the mpv builds without luajit
+		local is_ffi_loaded, ffi = pcall(require, 'ffi')
+
+		if is_ffi_loaded then
+			winapi = {
+				ffi = ffi,
+				C = ffi.C,
+				CP_UTF8 = 65001,
+				shlwapi = ffi.load('shlwapi'),
+			}
+
+			-- ffi code from https://github.com/po5/thumbfast, Mozilla Public License Version 2.0
+			ffi.cdef [[
+				int __stdcall MultiByteToWideChar(unsigned int CodePage, unsigned long dwFlags, const char *lpMultiByteStr,
+				int cbMultiByte, wchar_t *lpWideCharStr, int cchWideChar);
+				int __stdcall StrCmpLogicalW(wchar_t *psz1, wchar_t *psz2);
+			]]
+
+			winapi.utf8_to_wide = function(utf8_str)
+				if utf8_str then
+					local utf16_len = winapi.C.MultiByteToWideChar(winapi.CP_UTF8, 0, utf8_str, -1, nil, 0)
+
+					if utf16_len > 0 then
+						local utf16_str = winapi.ffi.new('wchar_t[?]', utf16_len)
+
+						if winapi.C.MultiByteToWideChar(winapi.CP_UTF8, 0, utf8_str, -1, utf16_str, utf16_len) > 0 then
+							return utf16_str
+						end
+					end
+				end
+
+				return ''
+			end
+		end
+	end
+	----- winapi end -----
+
 	-- alphanum sorting for humans in Lua
 	-- http://notebook.kulchenko.com/algorithms/alphanumeric-natural-sorting-for-humans-in-lua
 	local function padnum(n, d)
@@ -13,15 +61,28 @@ function sort_filenames(filenames)
 			or ('%03d%s'):format(#n, n)
 	end
 
-	local tuples = {}
-	for i, f in ipairs(filenames) do
-		tuples[i] = {f:lower():gsub('0*(%d+)%.?(%d*)', padnum), f}
+	local function sort_lua(strings)
+		local tuples = {}
+		for i, f in ipairs(strings) do
+			tuples[i] = {f:lower():gsub('0*(%d+)%.?(%d*)', padnum), f}
+		end
+		table.sort(tuples, function(a, b)
+			return a[1] == b[1] and #b[2] < #a[2] or a[1] < b[1]
+		end)
+		for i, tuple in ipairs(tuples) do strings[i] = tuple[2] end
+		return strings
 	end
-	table.sort(tuples, function(a, b)
-		return a[1] == b[1] and #b[2] < #a[2] or a[1] < b[1]
-	end)
-	for i, tuple in ipairs(tuples) do filenames[i] = tuple[2] end
-	return filenames
+
+	---@param strings string[]
+	function sort_strings(strings)
+		if winapi then
+			table.sort(strings, function(a, b)
+				return winapi.shlwapi.StrCmpLogicalW(winapi.utf8_to_wide(a), winapi.utf8_to_wide(b)) == -1
+			end)
+		else
+			sort_lua(strings)
+		end
+	end
 end
 
 -- Creates in-between frames to animate value from `from` to `to` numbers.
@@ -84,6 +145,13 @@ end
 function get_point_to_point_proximity(point_a, point_b)
 	local dx, dy = point_a.x - point_b.x, point_a.y - point_b.y
 	return math.sqrt(dx * dx + dy * dy)
+end
+
+---@param point Point
+---@param hitbox Hitbox
+function point_collides_with(point, hitbox)
+	return (hitbox.r and get_point_to_point_proximity(point, hitbox.point) <= hitbox.r) or
+		(not hitbox.r and get_point_to_rectangle_proximity(point, hitbox --[[@as Rect]]) == 0)
 end
 
 ---@param lax number
@@ -401,7 +469,7 @@ function get_adjacent_files(file_path, opts)
 	if not current_meta then return end
 	local files = read_directory(current_meta.dirname, {hidden = opts.hidden})
 	if not files then return end
-	sort_filenames(files)
+	sort_strings(files)
 	local current_file_index
 	local paths = {}
 	for _, file in ipairs(files) do
@@ -421,7 +489,7 @@ end
 ---@param current_index number
 ---@param delta number 1 or -1 for forward or backward
 function decide_navigation_in_list(paths, current_index, delta)
-	if #paths < 2 then return #paths, paths[#paths] end
+	if #paths < 2 then return end
 	delta = delta < 0 and -1 or 1
 
 	-- Shuffle looks at the played files history trimmed to 80% length of the paths
@@ -548,35 +616,23 @@ function delete_file(path)
 end
 
 function delete_file_navigate(delta)
-	local next_file = nil
-	local is_local_file = state.path and not is_protocol(state.path)
+	local path, playlist_pos = state.path, state.playlist_pos
+	local is_local_file = path and not is_protocol(path)
+
+	if navigate_item(delta) then
+		if state.has_playlist then
+			mp.commandv('playlist-remove', playlist_pos - 1)
+		end
+	else
+		mp.command('stop')
+	end
 
 	if is_local_file then
-		if Menu:is_open('open-file') then Elements:maybe('menu', 'delete_value', state.path) end
-	end
-
-	if state.has_playlist then
-		mp.commandv('playlist-remove', 'current')
-	else
-		if is_local_file then
-			local paths, current_index = get_adjacent_files(state.path, {
-				types = config.types.autoload,
-				hidden = options.show_hidden_files,
-			})
-			if paths and current_index then
-				local index, path = decide_navigation_in_list(paths, current_index, delta)
-				if path then next_file = path end
-			end
+		if Menu:is_open('open-file') then
+			Elements:maybe('menu', 'delete_value', path)
 		end
-
-		if next_file then
-			mp.commandv('loadfile', next_file)
-		else
-			mp.commandv('stop')
-		end
+		delete_file(path)
 	end
-
-	if is_local_file then delete_file(state.path) end
 end
 
 function serialize_chapter_ranges(normalized_chapters)
@@ -740,6 +796,42 @@ function find_active_keybindings(key)
 	return not key and active or active[key]
 end
 
+---@param type 'sub'|'audio'|'video'
+---@param path string
+function load_track(type, path)
+	mp.commandv(type .. '-add', path, 'cached')
+	-- If subtitle track was loaded, assume the user also wants to see it
+	if type == 'sub' then
+		mp.commandv('set', 'sub-visibility', 'yes')
+	end
+end
+
+---@return string|nil
+function get_clipboard()
+	local result = mp.command_native({
+		name = 'subprocess',
+		capture_stderr = true,
+		capture_stdout = true,
+		playback_only = false,
+		args = {config.ziggy_path, 'get-clipboard'},
+	})
+
+	local function print_error(message)
+		msg.error('Getting clipboard data failed. Error: ' .. message)
+	end
+
+	if result.status == 0 then
+		local data = utils.parse_json(result.stdout)
+		if data and data.payload then
+			return data.payload
+		else
+			print_error(data and (data.error and data.message or 'unknown error') or 'couldn\'t parse json')
+		end
+	else
+		print_error('exit code ' .. result.status .. ': ' .. result.stdout .. result.stderr)
+	end
+end
+
 --[[ RENDERING ]]
 
 function render()
@@ -747,6 +839,9 @@ function render()
 	state.render_last_time = mp.get_time()
 
 	cursor:clear_zones()
+
+	-- Click on empty area detection
+	if setup_click_detection then setup_click_detection() end
 
 	-- Actual rendering
 	local ass = assdraw.ass_new()
