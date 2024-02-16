@@ -1,10 +1,12 @@
-# MPV config files
+<h1 align="center">🌸 Auto Memory MPV 🌸</h1> 
 
-<img src="https://raw.githubusercontent.com/cyl0/ModernX/main/preview.png"/>
+<h3 align="center"><samp>&gt; Welcome to my Auto Memory MPV config, designed for an optimized anime viewing experience!</samp></h3>
+
+<p align="center"><samp>「 This are my personal opinionated MPV settings 」</samp></p>
+
+[![preview.png](https://i.postimg.cc/0QYzwWPn/preview.png)](https://postimg.cc/DJzfVcW4)
 
 ## 🦇 Shaders
-
-- **[ACNet](https://github.com/TianZerL/ACNetGLSL/releases/tag/v1.0.0)** - ACNet is a CNN algorithm, implemented by [Anime4KCPP](https://github.com/TianZerL/Anime4KCPP), it aims to provide both high-quality and high-performance.
 
 - **[FSRCNN](https://github.com/igv/FSRCNN-TensorFlow/releases)** - Prescaler based on layered convolutional networks.
     
@@ -16,14 +18,20 @@
 
 ## 🌑 Scripts
 
-- **[ModernX](https://github.com/cyl0/ModernX)** - A modern OSC UI replacement for MPV that retains the functionality of the default OSC.
-
 - **[autoload](https://github.com/mpv-player/mpv/blob/master/TOOLS/lua/autoload.lua)** - Automatically load playlist entries before and after the currently playing file, by scanning the directory.
 
 - **[copy-paste-URL](https://github.com/yassin-l/copy-paste-url)** - Paste URLs directly from clipboard into mpv.
 
-- **[uosc](https://github.com/tomasklaen/uosc)** - Feature-rich minimalist proximity-based UI for MPV player.
+- **[ModernX](https://github.com/cyl0/ModernX)** - A modern OSC UI replacement for MPV that retains the functionality of the default OSC.
 
 - **[thumbfast](https://github.com/po5/thumbfast)** - High-performance on-the-fly thumbnailer script for mpv.
 
+- **[uosc](https://github.com/tomasklaen/uosc)** - Feature-rich minimalist proximity-based UI for MPV player.
+
 - **[webm](https://github.com/ekisu/mpv-webm)** - Quickly create video clips.
+
+## ❤️ References
+
+- [MPV Manual](https://mpv.io/manual/stable/)
+
+- [I am Scum's Guide](https://iamscum.wordpress.com/guides/videoplayback-guide/mpv-conf/)
