@@ -1,12 +1,12 @@
-<h1 align="center">🌸 Auto Memory MPV 🌸</h1> 
+<h1 align="center">❄️📖✨ MPV's madōsho ✨📖❄️</h1> 
 
-<h3 align="center"><samp>&gt; Welcome to my Auto Memory MPV config, designed for an optimized anime viewing experience!</samp></h3>
+<h3 align="center"><samp>&gt; Welcome to my MPV's grimoire, designed for an optimized anime viewing experience!</samp></h3>
 
-<p align="center"><samp>「 This are my personal opinionated MPV settings 」</samp></p>
+<p align="center"><samp>「 These are my personal opinionated MPV settings 」</samp></p>
 
-[![preview.png](https://i.postimg.cc/0QYzwWPn/preview.png)](https://postimg.cc/DJzfVcW4)
+![preview.png](https://i.postimg.cc/MKnv64Hr/preview.png)
 
-## 🦇 Shaders
+## 🌨️ Shaders
 
 - **[FSRCNN](https://github.com/igv/FSRCNN-TensorFlow/releases)** - Prescaler based on layered convolutional networks.
     
@@ -16,13 +16,15 @@
     -   **[SSimSuperRes](https://gist.github.com/igv/2364ffa6e81540f29cb7ab4c9bc05b6b)** - The aim of this shader is to make corrections to the image upscaled by mpv built-in scaler (removes ringing artifacts, restores original sharpness, etc).
     -   **[Krig](https://gist.github.com/igv/a015fc885d5c22e6891820ad89555637)** - Chroma scaler that uses luma information for high quality upscaling.
 
-## 🌑 Scripts
+## 🔮 Scripts
 
 - **[autoload](https://github.com/mpv-player/mpv/blob/master/TOOLS/lua/autoload.lua)** - Automatically load playlist entries before and after the currently playing file, by scanning the directory.
 
 - **[copy-paste-URL](https://github.com/yassin-l/copy-paste-url)** - Paste URLs directly from clipboard into mpv.
 
-- **[ModernX](https://github.com/cyl0/ModernX)** - A modern OSC UI replacement for MPV that retains the functionality of the default OSC.
+- **[ModernX](https://github.com/zydezu/ModernX)** - A modern OSC UI replacement for MPV that retains the functionality of the default OSC.
+
+- **[skip-intro](https://github.com/rui-ddc/skip-intro)** - Effortlessly skip episode openings with a simple TAB press.
 
 - **[thumbfast](https://github.com/po5/thumbfast)** - High-performance on-the-fly thumbnailer script for mpv.
 
@@ -33,5 +35,4 @@
 ## ❤️ References
 
 - [MPV Manual](https://mpv.io/manual/stable/)
-
 - [I am Scum's Guide](https://iamscum.wordpress.com/guides/videoplayback-guide/mpv-conf/)
