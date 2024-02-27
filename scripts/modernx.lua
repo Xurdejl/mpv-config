@@ -96,9 +96,9 @@ local user_opts = {
     showontop = true,               -- show window on top button
     showinfo = false,               -- show the info button
     downloadbutton = true,          -- show download button for web videos
-    downloadpath = "~~desktop/mpv/downloads", -- the download path for videos
+    downloadpath = "~/Downloads",   -- the download path for videos
     showyoutubecomments = false,    -- EXPERIMENTAL - not ready
-    commentsdownloadpath = "~~desktop/mpv/downloads/comments", -- the download path for the comment JSON file
+    commentsdownloadpath = "~/Downloads/comments", -- the download path for the comment JSON file
     ytdlpQuality = '-f bestvideo[vcodec^=avc][ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best' -- what quality of video the download button uses (max quality mp4 by default)
 }
 
@@ -124,27 +124,30 @@ local jumpicons = {
 } 
 
 local icons = {
-  previous = '\239\142\181',
-  next = '\239\142\180',
-  play = '\239\142\170',
-  pause = '\239\142\167',
-  replay = '\239\142\178', -- copied private use character
-  backward = '\239\142\160',
-  forward = '\239\142\159',
-  audio = '\239\142\183',
-  volume = '\239\142\188',
-  volumelow = '\239\142\185',
-  volumemute = '\239\142\187',
-  sub = '\239\140\164',
-  minimize = '\239\133\172',
-  fullscreen = '\239\133\173',  
-  loopoff = '\239\142\173',
-  loopon = '\239\142\174', 
-  info = '\239\135\183',
-  download = '\239\136\160',
-  downloading = '\239\134\185',
-  ontopon = '\239\142\150',
-  ontopoff = '\239\142\149',
+    play = '\239\142\170',
+    pause = '\239\142\167',
+    replay = '\239\142\178',
+    previous = '\239\142\181',
+    next = '\239\142\180',
+    rewind = '\239\142\160',
+    forward = '\239\142\159',
+  
+    audio = '\239\142\183',
+    subtitle = '\239\140\164',
+    volume_high = '\239\142\188',
+    volume_low = '\239\142\185',
+    volume_quiet = '\239\142\186',
+    volume_mute = '\239\142\187',
+  
+    download = '\239\136\160',
+    downloading = '\239\134\185',
+    info = '\239\135\183',
+    loop_on = '\239\142\174',
+    loop_off = '\239\142\173',
+    ontop_on = '\239\142\150',
+    ontop_off = '\239\142\149',
+    fullscreen = '\239\133\173',
+    fullscreen_exit = '\239\133\172',
 }
 
 local emoticon = {
@@ -252,7 +255,7 @@ local language = {
         chapter = 'Capítulo',
         nochapter = 'No hay capítulos.',
         ontop = 'Fijar ventana',
-        ontopdisable = 'Desfijar ventana',
+        ontopdisable = 'Soltar ventana',
         loopenable = 'Activar repetición',
         loopdisable = 'Desactivar repetición',
     }
@@ -2167,14 +2170,14 @@ layouts = function ()
 
     if showontop then
         lo = add_layout('tog_ontop')
-        lo.geometry = {x = osc_geo.w - 127 + (showloop and 0 or 50), y = refY - 40, an = 5, w = 24, h = 24}
+        lo.geometry = {x = osc_geo.w - 82, y = refY - 40, an = 5, w = 24, h = 24}
         lo.style = osc_styles.Ctrl3
         lo.visible = (osc_param.playresx >= 700 - outeroffset)
     end
 
     if showloop then
         lo = add_layout('tog_loop')
-        lo.geometry = {x = osc_geo.w - 82, y = refY - 40, an = 5, w = 24, h = 24}
+        lo.geometry = {x = osc_geo.w - 127 + (showontop and 0 or 50), y = refY - 40, an = 5, w = 24, h = 24}
         lo.style = osc_styles.Ctrl3
         lo.visible = (osc_param.playresx >= 600 - outeroffset)    
     end
@@ -2445,7 +2448,7 @@ function osc_init()
     ne = new_element('skipback', 'button')
     ne.visible = (osc_param.playresx >= 400 - nojumpoffset*10)
     ne.softrepeat = true
-    ne.content = icons.backward
+    ne.content = icons.rewind
     ne.enabled = (have_ch) or compactmode -- disables button when no chapters available.
     ne.eventresponder['mbtn_left_down'] =
         function () 
@@ -2553,7 +2556,7 @@ function osc_init()
     ne.enabled = (#tracks_osc.sub > 0)
     ne.off = (get_track('sub') == 0)
     ne.visible = (osc_param.playresx >= 600 - outeroffset)
-    ne.content = icons.sub
+    ne.content = icons.subtitle
     ne.tooltip_style = osc_styles.Tooltip
     ne.tooltipF = function ()
         local msg = texts.off
@@ -2594,12 +2597,14 @@ function osc_init()
     ne.content = function ()
         local volume = mp.get_property_number("volume", 0)
         if state.mute then
-            return icons.volumemute
+            return icons.volume_mute
         else
-            if volume > 85 then
-                return icons.volume
+            if volume >= 75 then
+                return icons.volume_high
+            elseif volume >= 25 then
+                return icons.volume_low
             else
-                return icons.volumelow
+                return icons.volume_quiet
             end
         end
     end
@@ -2622,7 +2627,7 @@ function osc_init()
     ne = new_element('tog_fs', 'button')
     ne.content = function ()
         if (state.fullscreen) then
-            return (icons.minimize)
+            return (icons.fullscreen_exit)
         else
             return (icons.fullscreen)
         end
@@ -2635,9 +2640,9 @@ function osc_init()
     ne = new_element('tog_loop', 'button')
     ne.content = function ()
         if (state.looping) then
-            return (icons.loopon)
+            return (icons.loop_on)
         else
-            return (icons.loopoff)
+            return (icons.loop_off)
         end
     end
     ne.visible = (osc_param.playresx >= 600 - outeroffset)
@@ -2740,9 +2745,9 @@ function osc_init()
     ne = new_element('tog_ontop', 'button')
     ne.content = function ()
         if mp.get_property('ontop') == 'no' then
-            return (icons.ontopon)
+            return (icons.ontop_on)
         else
-            return (icons.ontopoff)
+            return (icons.ontop_off)
         end
     end
     ne.tooltip_style = osc_styles.Tooltip
