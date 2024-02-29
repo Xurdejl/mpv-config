@@ -20,7 +20,7 @@
 
 - **[autoload](https://github.com/mpv-player/mpv/blob/master/TOOLS/lua/autoload.lua)** - Automatically load playlist entries before and after the currently playing file, by scanning the directory.
 
-- **[copy-paste-URL](https://github.com/yassin-l/copy-paste-url)** - Paste URLs directly from clipboard into mpv.
+- **[SmartCopyPaste](https://github.com/Eisa01/mpv-scripts?tab=readme-ov-file#smartcopypaste)** - Paste URLs and files directly from the clipboard into mpv.
 
 - **[ModernX](https://github.com/zydezu/ModernX)** - A modern OSC UI replacement for MPV that retains the functionality of the default OSC.
 
