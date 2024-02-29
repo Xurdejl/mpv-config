@@ -73,7 +73,6 @@ local user_opts = {
     seekbarhandlesize = 0.8,        -- size ratio of the slider handle, range 0 ~ 1
     seekrange = true,               -- show seekrange overlay
     seekrangealpha = 150,           -- transparency of seekranges
-    iconstyle = 'round',            -- icon style, 'solid' or 'round'
     hovereffect = true,             -- whether buttons have a glowing effect when hovered over
 
     -- button settings --
@@ -117,37 +116,37 @@ function dump(o)
 
 -- Icons for jump button depending on jumpamount 
 local jumpicons = { 
-    [5] = {'\239\142\177', '\239\142\163'}, 
-    [10] = {'\239\142\175', '\239\142\161'}, 
-    [30] = {'\239\142\176', '\239\142\162'}, 
-    default = {'\239\142\178    ', '\239\142\178'}, -- second icon is mirrored in layout() 
+    [5] = {'\238\164\144', '\238\164\145'}, 
+    [10] = {'\238\164\146', '\238\164\147'}, 
+    [30] = {'\238\164\148', '\238\164\149'}, 
+    default = {'\238\164\136', '\238\164\136'}, -- second icon is mirrored in layout() 
 } 
 
 local icons = {
-    play = '\239\142\170',
-    pause = '\239\142\167',
-    replay = '\239\142\178',
-    previous = '\239\142\181',
-    next = '\239\142\180',
-    rewind = '\239\142\160',
-    forward = '\239\142\159',
+    play = '\238\164\137',
+    pause = '\238\164\138',
+    replay = '\238\164\136',
+    previous = '\238\164\134',
+    next = '\238\164\140',
+    rewind = '\238\164\135',
+    forward = '\238\164\139',
   
-    audio = '\239\142\183',
-    subtitle = '\239\140\164',
-    volume_high = '\239\142\188',
-    volume_low = '\239\142\185',
-    volume_quiet = '\239\142\186',
-    volume_mute = '\239\142\187',
+    audio = '\238\164\132',
+    subtitle = '\238\164\133',
+    volume_high = '\238\164\130',
+    volume_low = '\238\164\129',
+    volume_quiet = '\238\164\128',
+    volume_mute = '\238\164\131',
   
-    download = '\239\136\160',
-    downloading = '\239\134\185',
-    info = '\239\135\183',
-    loop_on = '\239\142\174',
-    loop_off = '\239\142\173',
-    ontop_on = '\239\142\150',
-    ontop_off = '\239\142\149',
-    fullscreen = '\239\133\173',
-    fullscreen_exit = '\239\133\172',
+    download = '\238\164\157',
+    downloading = '\238\164\159',
+    info = '\238\164\141',
+    loop_on = '\238\164\151',
+    loop_off = '\238\164\150',
+    ontop_on = '\238\164\153',
+    ontop_off = '\238\164\154',
+    fullscreen = '\238\164\143',
+    fullscreen_exit = '\238\164\142',
 }
 
 local emoticon = {
@@ -272,18 +271,16 @@ local osc_param = {                         -- calculated by osc_init()
     areas = {},
 }
 
-local iconfont = user_opts.iconstyle == 'round' and 'Material-Design-Iconic-Round' or 'Material-Design-Iconic-Font'
-
 local osc_styles = {
     TransBg = "{\\blur100\\bord" .. user_opts.OSCfadealpha .. "\\1c&H000000&\\3c&H" .. user_opts.osc_color .. "&}",
     SeekbarBg = "{\\blur0\\bord0\\1c&H" .. user_opts.seekbarbg_color .. "&}",
     SeekbarFg = "{\\blur1\\bord1\\1c&H" .. user_opts.seekbarfg_color .. "&}",
     VolumebarBg = '{\\blur0\\bord0\\1c&H999999&}',
     VolumebarFg = '{\\blur1\\bord1\\1c&HFFFFFF&}',
-    Ctrl1 = '{\\blur0\\bord0\\1c&HFFFFFF&\\3c&HFFFFFF&\\fs36\\fn' .. iconfont .. '}',
-    Ctrl2 = '{\\blur0\\bord0\\1c&HFFFFFF&\\3c&HFFFFFF&\\fs24\\fn' .. iconfont .. '}',
-    Ctrl2Flip = '{\\blur0\\bord0\\1c&HFFFFFF&\\3c&HFFFFFF&\\fs24\\fn' .. iconfont .. '\\fry180',
-    Ctrl3 = '{\\blur0\\bord0\\1c&HFFFFFF&\\3c&HFFFFFF&\\fs24\\fn' .. iconfont .. '}',
+    Ctrl1 = '{\\blur0\\bord0\\1c&HFFFFFF&\\3c&HFFFFFF&\\fs36\\fnmaterial-symbols}',
+    Ctrl2 = '{\\blur0\\bord0\\1c&HFFFFFF&\\3c&HFFFFFF&\\fs24\\fnmaterial-symbols}',
+    Ctrl2Flip = '{\\blur0\\bord0\\1c&HFFFFFF&\\3c&HFFFFFF&\\fs24\\fnmaterial-symbols\\fry180',
+    Ctrl3 = '{\\blur0\\bord0\\1c&HFFFFFF&\\3c&HFFFFFF&\\fs24\\fnmaterial-symbols}',
     Time = '{\\blur0\\bord0\\1c&HFFFFFF&\\3c&H000000&\\fs' .. user_opts.timefontsize .. '\\fn' .. user_opts.font .. '}',
     Tooltip = '{\\blur1\\bord0.5\\1c&HFFFFFF&\\3c&H000000&\\fs' .. user_opts.timefontsize .. '\\fn' .. user_opts.font .. '}',
     Title = '{\\blur1\\bord0.5\\1c&HFFFFFF&\\3c&H0\\fs'.. user_opts.titlefontsize ..'\\q2\\fn' .. user_opts.font .. '}',
