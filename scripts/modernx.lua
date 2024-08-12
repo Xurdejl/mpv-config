@@ -24,7 +24,7 @@ local user_opts = {
     showwindowed = true,            -- show OSC when windowed?
     showfullscreen = true,          -- show OSC when fullscreen?
     noxmas = false,                 -- disable santa hat in December
-    keybindings = true,             -- register keybindings i.e. chapter scrubbing, pinning window
+    keybindings = false,            -- register keybindings i.e. chapter scrubbing, pinning window
     
     -- scaling settings --
     vidscale = true,               -- whether to scale the controller with the video
@@ -77,7 +77,7 @@ local user_opts = {
     seekbarhandlesize = 0.8,        -- size ratio of the slider handle, range 0 ~ 1
     seekrange = true,               -- show seekrange overlay
     seekrangealpha = 150,           -- transparency of seekranges
-        hovereffect = true,             -- whether buttons have a glowing effect when hovered over
+    hovereffect = true,             -- whether buttons have a glowing effect when hovered over
 
     -- button settings --
     timetotal = true,               -- display total time instead of remaining time by default
