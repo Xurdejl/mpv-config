@@ -18,17 +18,13 @@
 
 ## 🔮 Scripts
 
-- **[autoload](https://github.com/mpv-player/mpv/blob/master/TOOLS/lua/autoload.lua)** - Automatically load playlist entries before and after the currently playing file, by scanning the directory.
+- **[ModernX](https://github.com/zydezu/ModernX)** - A modern OSC UI replacement for MPV that retains the functionality of the default OSC.
 
 - **[SmartCopyPaste](https://github.com/Eisa01/mpv-scripts?tab=readme-ov-file#smartcopypaste)** - Paste URLs and files directly from the clipboard into mpv.
-
-- **[ModernX](https://github.com/zydezu/ModernX)** - A modern OSC UI replacement for MPV that retains the functionality of the default OSC.
 
 - **[skip-intro](https://github.com/rui-ddc/skip-intro)** - Effortlessly skip episode openings with a simple TAB press.
 
 - **[thumbfast](https://github.com/po5/thumbfast)** - High-performance on-the-fly thumbnailer script for mpv.
-
-- **[uosc](https://github.com/tomasklaen/uosc)** - Feature-rich minimalist proximity-based UI for MPV player.
 
 - **[webm](https://github.com/ekisu/mpv-webm)** - Quickly create video clips.
 
