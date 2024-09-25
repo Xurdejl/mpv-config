@@ -27,7 +27,7 @@ local user_opts = {
     keybindings = false,            -- register keybindings i.e. chapter scrubbing, pinning window
     
     -- scaling settings --
-    vidscale = true,               -- whether to scale the controller with the video
+    vidscale = true,                -- whether to scale the controller with the video
     scalewindowed = 1.0,            -- scaling of the controller when windowed
     scalefullscreen = 1.0,          -- scaling of the controller when fullscreen
     scaleforcedwindow = 1.0,        -- scaling when rendered on a forced window
@@ -38,9 +38,9 @@ local user_opts = {
     minmousemove = 0,               -- amount of pixels the mouse has to move for OSC to show
     scrollingSpeed = 40,            -- the speed of scrolling text in menus
     showonpause = true,             -- whether to show to osc when paused
-    donttimeoutonpause = true,     -- whether to disable the hide timeout on pause
-    bottomhover = false,             -- if the osc should only display when hovering at the bottom
-    raisesubswithosc = false,        -- whether to raise subtitles above the osc when it's shown
+    donttimeoutonpause = true,      -- whether to disable the hide timeout on pause
+    bottomhover = false,            -- if the osc should only display when hovering at the bottom
+    raisesubswithosc = false,       -- whether to raise subtitles above the osc when it's shown
     thumbnailborder = 2,            -- the width of the thumbnail border
     persistentprogress = false,     -- always show a small progress line at the bottom of the screen
     persistentprogressheight = 17,  -- the height of the persistentprogress bar
@@ -50,7 +50,7 @@ local user_opts = {
     -- title and chapter settings --
     showtitle = true,               -- show title in OSC
     showdescription = true,         -- show video description on web videos
-    showwindowtitle = true,         -- show window title in borderless/fullscreen mode
+    showwindowtitle = false,        -- show window title in borderless/fullscreen mode
     showfilesize = false,           -- show the current file's size in the description
     titleBarStrip = false,          -- whether to make the title bar a singular bar instead of a black fade
     title = '${media-title}',       -- title shown on OSC - turn off dynamictitle for this option to apply
