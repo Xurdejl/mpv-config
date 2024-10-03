@@ -62,15 +62,15 @@ local user_opts = {
     titlefontsize = 30,             -- the font size of the title text
     chapterformat = 'Chapter: %s',  -- chapter print format for seekbar-hover. "no" to disable
     dateformat = "%Y-%m-%d",        -- how dates should be formatted, when read from metadata (uses standard lua date formatting)
-    osc_color = '000000',           -- accent of the OSC and the title bar, in format BBGGRR - http://www.tcax.org/docs/ass-specs.htm
+    osc_color = '#000000',           -- accent of the OSC and the title bar, in Hex color format
     OSCfadealpha = 150,             -- alpha of the background box for the OSC
     boxalpha = 75,                  -- alpha of the window title bar
     descriptionfontsize = 19,       -- alpha of the description background box
     descriptionBoxAlpha = 100,      -- alpha of the description background box
 
     -- seekbar settings --
-    seekbarfg_color = 'E39C42',     -- color of the seekbar progress and handle, in format BBGGRR - http://www.tcax.org/docs/ass-specs.htm
-    seekbarbg_color = 'FFFFFF',     -- color of the remaining seekbar, in format BBGGRR - http://www.tcax.org/docs/ass-specs.htm
+    seekbarfg_color = '#429CE3',     -- color of the seekbar progress and handle, in Hex color format
+    seekbarbg_color = '#FFFFFF',     -- color of the remaining seekbar, in Hex color format
     seekbarkeyframes = false,       -- use keyframes when dragging the seekbar
     automatickeyframemode = true,   -- set seekbarkeyframes based on video length to prevent laggy scrubbing on long videos 
     automatickeyframelimit = 600,   -- videos of above this length (in seconds) will have seekbarkeyframes on
@@ -263,10 +263,14 @@ local osc_param = {                         -- calculated by osc_init()
     areas = {},
 }
 
+local function osc_color_convert(color)
+    return color:sub(6,7) .. color:sub(4,5) ..  color:sub(2,3)
+end
+
 local osc_styles = {
-    TransBg = "{\\blur100\\bord" .. user_opts.OSCfadealpha .. "\\1c&H000000&\\3c&H" .. user_opts.osc_color .. "&}",
-    SeekbarBg = "{\\blur0\\bord0\\1c&H" .. user_opts.seekbarbg_color .. "&}",
-    SeekbarFg = "{\\blur1\\bord1\\1c&H" .. user_opts.seekbarfg_color .. "&}",
+    TransBg = "{\\blur100\\bord" .. user_opts.OSCfadealpha .. "\\1c&H000000&\\3c&H" .. osc_color_convert(user_opts.osc_color) .. "&}",
+    SeekbarBg = "{\\blur0\\bord0\\1c&H" .. osc_color_convert(user_opts.seekbarbg_color) .. "&}",
+    SeekbarFg = "{\\blur1\\bord1\\1c&H" .. osc_color_convert(user_opts.seekbarfg_color) .. "&}",
     VolumebarBg = '{\\blur0\\bord0\\1c&H999999&}',
     VolumebarFg = '{\\blur1\\bord1\\1c&HFFFFFF&}',
     Ctrl1 = '{\\blur0\\bord0\\1c&HFFFFFF&\\3c&HFFFFFF&\\fs36\\fnmaterial-symbols}',
@@ -281,7 +285,7 @@ local osc_styles = {
     WinCtrl = '{\\blur1\\bord0.5\\1c&HFFFFFF&\\3c&H0\\fs20\\fnmpv-osd-symbols}',
     elementDown = '{\\1c&H999999&}',
     elementHover = "{\\blur5\\2c&HFFFFFF&}",
-    wcBar = "{\\1c&H" .. user_opts.osc_color .. "}",
+    wcBar = "{\\1c&H" .. osc_color_convert(user_opts.osc_color) .. "}",
 }
 
 -- internal states, do not touch
@@ -1381,7 +1385,7 @@ function checkWebLink()
 
         -- Youtube Return Dislike API
         state.dislikes = ""
-        if path:find('youtu%.?be') then
+        if path:find('youtu%.?be') and (user_opts.showdescription or user_opts.updatetitleyoutubestats) then
             msg.info("WEB: Loading dislike count...")
             local filename = mp.get_property_osd("filename")
             local pattern = "v=([^&]+)"
@@ -1474,7 +1478,7 @@ function checkcomments()
 end
 
 function loadSetOfComments(startIndex) 
-    if (state.jsoncomments < 1) then
+    if (#state.jsoncomments < 1) then
         return
     end
 
@@ -1610,9 +1614,9 @@ function exec_description(args, result)
             return 
         end
 
-        state.localDescriptionClick = mp.get_property("media-title") .. string.gsub(string.gsub(val.stdout, '\r', '\\N') .. state.dislikes, '\n', '\\N')
+        state.localDescriptionClick = mp.get_property("media-title", "") .. string.gsub(string.gsub(val.stdout, '\r', '\\N') .. state.dislikes, '\n', '\\N')
         if (state.dislikes == "") then
-            state.localDescriptionClick = mp.get_property("media-title") .. string.gsub(string.gsub(val.stdout, '\r', '\\N'), '\n', '\\N')
+            state.localDescriptionClick = mp.get_property("media-title", "") .. string.gsub(string.gsub(val.stdout, '\r', '\\N'), '\n', '\\N')
             state.localDescriptionClick = state.localDescriptionClick:sub(1, #state.localDescriptionClick - 2)
         end
         addLikeCountToTitle()
@@ -1916,7 +1920,11 @@ function show_description(text)
     duration = 10
     if (state.isWebVideo and user_opts.showyoutubecomments) then
         if (state.commentsParsed and user_opts.showyoutubecomments) then
-            state.commentsAdditionalText = '\\N----------\\NPress LEFT/RIGHT to view comments\\N' .. state.maxCommentPages .. ' pages (' .. #state.jsoncomments .. ' comments)'
+            local pageText = "pages"
+            if state.maxCommentPages == 1 then
+                pageText = "page"
+            end
+            state.commentsAdditionalText = '\\N----------\\NPress LEFT/RIGHT to view comments\\N' .. state.maxCommentPages .. ' ' .. pageText .. ' (' .. #state.jsoncomments .. ' comments)'
             text = text .. state.commentsAdditionalText
         else
             text = text .. '\\N----------\\NComments loading...'
@@ -1945,10 +1953,22 @@ function show_description(text)
             state.message_text = state.localDescriptionClick .. state.commentsAdditionalText
             resetDescTimer()
             request_tick()
+            state.scrolledlines = 25
         else
             destroyscrollingkeys()
         end
     end) -- close menu using ESC
+
+    local function returnMessageText()
+        local totalCommentCount = #state.jsoncomments
+        local firstCommentCount = (state.commentsPage - 1) * commentsperpage + 1
+        local lastCommentCount = (state.commentsPage) * commentsperpage
+        if lastCommentCount > totalCommentCount then
+            lastCommentCount = totalCommentCount
+        end
+        loadSetOfComments(firstCommentCount)
+        return 'Comments\\NPage ' .. state.commentsPage .. '/' .. state.maxCommentPages .. ' (' .. firstCommentCount .. '/' .. #state.jsoncomments .. ')\\N----------' .. state.commentDescription:gsub('\n', '\\N') ..  '\\N----------\\NEnd of page\\NPage ' .. state.commentsPage .. '/' .. state.maxCommentPages .. ' (' .. lastCommentCount .. '/' .. totalCommentCount .. ')'
+    end
     
     state.commentsPage = 0
     if (state.isWebVideo and user_opts.showyoutubecomments) then
@@ -1958,12 +1978,10 @@ function show_description(text)
                 if (state.commentsPage == 0) then
                     state.message_text = state.localDescriptionClick .. state.commentsAdditionalText
                 elseif (state.commentsPage > 0) then
-                    loadSetOfComments((state.commentsPage - 1) * commentsperpage + 1)
-                    state.message_text = 'Comments | Page ' .. state.commentsPage .. '/' .. state.maxCommentPages .. ' (' .. (state.commentsPage - 1) * commentsperpage + 1 .. '/' .. #state.jsoncomments .. ')\\N----------' .. state.commentDescription:gsub('\n', '\\N')
+                    state.message_text = returnMessageText()
                 else
                     state.commentsPage = state.maxCommentPages
-                    loadSetOfComments((state.commentsPage - 1) * commentsperpage + 1)
-                    state.message_text = 'Comments | Page ' .. state.commentsPage .. '/' .. state.maxCommentPages .. ' (' .. (state.commentsPage - 1) * commentsperpage + 1 .. '/' .. #state.jsoncomments .. ')\\N----------' .. state.commentDescription:gsub('\n', '\\N')
+                    state.message_text = returnMessageText()
                 end
                 state.scrolledlines = 25
             end
@@ -1977,8 +1995,7 @@ function show_description(text)
                     state.commentsPage = 0
                     state.message_text = state.localDescriptionClick .. state.commentsAdditionalText
                 else
-                    loadSetOfComments((state.commentsPage - 1) * commentsperpage + 1)
-                    state.message_text = 'Comments | Page ' .. state.commentsPage .. '/' .. state.maxCommentPages .. ' (' .. (state.commentsPage - 1) * commentsperpage + 1 .. '/' .. #state.jsoncomments .. ')\\N----------' .. state.commentDescription:gsub('\n', '\\N')    
+                    state.message_text = returnMessageText()
                 end
                 state.scrolledlines = 25
             end
