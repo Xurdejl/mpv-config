@@ -36,8 +36,8 @@ local user_opts = {
     -- Buttons
     hovereffect = true,                    -- whether buttons have a glowing effect when hovered over
 
-    showjump = true,                       -- show "jump forward/backward 10 seconds" buttons 
-    showskip = false,                      -- show the skip back and forward (chapter) buttons
+    showjump = false,                      -- show "jump forward/backward 10 seconds" buttons 
+    showskip = true,                       -- show the skip back and forward (chapter) buttons
 
     showplaylist = false,                  -- show playlist button? LClick: simple playlist, RClick: interactive playlist
     showinfo = false,                      -- show the info button
@@ -125,35 +125,35 @@ local osc_param = { -- calculated by osc_init()
 }
 
 local icons = {
-	play = "\238\164\128",
-	pause = "\238\164\129",
-	replay = "\238\164\130",
-	previous = "\238\164\131",
-	next = "\238\164\132",
-	rewind = "\238\164\133",
-	forward = "\238\164\134",
+	play = "\238\166\143",
+	pause = "\238\163\140",
+	replay = "\238\189\191",
+	previous = "\239\152\167",
+	next = "\239\149\168",
+	rewind = "\238\168\158",
+	forward = "\238\152\135",
 
-	audio = '\238\164\135',
-    subtitle = '\238\164\136',
-	playlist = "\238\164\137",
-    volume_mute = '\238\164\139',
-    volume_quiet = '\238\164\140',
-    volume_low = '\238\164\141',
-    volume_high = '\238\164\142',
+	audio = '\238\175\139',
+    subtitle = '\238\175\141',
+	playlist = "\238\161\156",
+    volume_mute = '\238\173\138',
+    volume_quiet = '\238\172\184',
+    volume_low = '\238\172\189',
+    volume_high = '\238\173\130',
 	
-	loop_off = "\238\164\143",
-	loop_on = "\238\164\144",
-	info = "\238\164\146",
-	ontop_on = "\238\164\147",
-	ontop_off = "\238\164\148",
-	screenshot = "\238\164\145",
-	fullscreen = "\238\164\149",
-    fullscreen_exit = "\238\164\150",
+	loop_off = "\239\133\178",
+	loop_on = "\239\133\181",
+	info = "\239\146\164",
+	ontop_on = "\238\165\190",
+	ontop_off = "\238\166\129",
+	screenshot = "\239\154\142",
+	fullscreen = "\239\133\160",
+    fullscreen_exit = "\239\133\166",
 	jumpicons = { 
-	    [5] = {"\238\164\153", "\238\164\156"}, 
-	    [10] = {"\238\164\154", "\238\164\157"}, 
-	    [30] = {"\238\164\155", "\238\164\158"}, 
-	    default = {"\238\164\130", "\238\164\130"}, -- second icon is mirrored in layout() 
+	    [5] = {"\238\171\186", "\238\171\187"}, 
+	    [10] = {"\238\171\188", "\238\172\129"}, 
+	    [30] = {"\238\172\133", "\238\172\134"}, 
+	    default = {"\238\172\138", "\238\172\138"}, -- second icon is mirrored in layout() 
 	}
 }
 
@@ -204,7 +204,7 @@ local sub_track_count = 0
 local window_control_box_width = 138
 local is_december = os.date("*t").month == 12
 local UNICODE_MINUS = string.char(0xe2, 0x88, 0x92)  -- UTF-8 for U+2212 MINUS SIGN
-local iconfont = "material-symbols"
+local iconfont = "FluentSystemIcons-Regular"
 
 local function osc_color_convert(color)
     return color:sub(6,7) .. color:sub(4,5) ..  color:sub(2,3)
@@ -1319,7 +1319,9 @@ layouts = function ()
     if showjump then
         lo = add_layout("jumpback")
         lo.geometry = {x = refX - 60, y = refY - 40 , an = 5, w = 30, h = 24}
-        lo.style = osc_styles.Ctrl2
+        -- HACK: jumpfrwd's icon must be mirrored for nonstandard # of seconds
+        -- as the font only has an icon without a number for rewinding
+        lo.style = (user_opts.jumpiconnumber and icons.jumpicons[user_opts.jumpamount] ~= nil) and osc_styles.Ctrl2 or osc_styles.Ctrl2Flip
     end
 
     lo = add_layout("playpause")
@@ -1329,9 +1331,7 @@ layouts = function ()
     if showjump then
         lo = add_layout("jumpfrwd")
         lo.geometry = {x = refX + 60, y = refY - 40 , an = 5, w = 30, h = 24}
-        -- HACK: jumpfrwd's icon must be mirrored for nonstandard # of seconds
-        -- as the font only has an icon without a number for rewinding
-        lo.style = (user_opts.jumpiconnumber and icons.jumpicons[user_opts.jumpamount] ~= nil) and osc_styles.Ctrl2 or osc_styles.Ctrl2Flip
+        lo.style = osc_styles.Ctrl2
     end
 
     if showskip then
