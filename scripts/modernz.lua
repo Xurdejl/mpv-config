@@ -1291,16 +1291,25 @@ layouts = function ()
     local refY = posY
         
     -- Seekbar
+
+    -- Helper function to check if time is over an hour
+    local function is_time_over_hour(seconds)
+        return math.floor(seconds / 3600) > 0
+    end
+
     new_element("seekbarbg", "box")
     lo = add_layout("seekbarbg")
-    lo.geometry = {x = refX , y = refY - 100, an = 5, w = osc_geo.w - 50, h = 2}
+    local duration = mp.get_property_number("duration", 0)
+    local seekbar_width = osc_geo.w - (is_time_over_hour(duration) and 200 or 155)
+
+    lo.geometry = {x = refX, y = refY - 92, an = 5, w = (state.tc_ms and seekbar_width  - 60 or seekbar_width), h = 2}
     lo.layer = 13
     lo.style = osc_styles.SeekbarBg
     lo.alpha[1] = 128
     lo.alpha[3] = 128
 
     lo = add_layout("seekbar")
-    lo.geometry = {x = refX, y = refY - 100, an = 5, w = osc_geo.w - 50, h = 16}
+    lo.geometry = {x = refX, y = refY - 92, an = 5, w = (state.tc_ms and seekbar_width - 60 or seekbar_width), h = 16}
     lo.style = osc_styles.SeekbarFg
     lo.slider.gap = 7
     lo.slider.tooltip_style = osc_styles.Tooltip
@@ -1381,11 +1390,11 @@ layouts = function ()
 
     -- Time
     lo = add_layout("tc_left")
-    lo.geometry = {x = 25, y = refY - 84, an = 7, w = 100, h = 20}
+    lo.geometry = {x = 25, y = refY - 100, an = 7, w = 70, h = 20}
     lo.style = osc_styles.Time
         
     lo = add_layout("tc_right")
-    lo.geometry = {x = osc_geo.w - 25 , y = refY -84, an = 9, w = 100, h = 20}
+    lo.geometry = {x = osc_geo.w - 25 , y = refY - 100, an = 9, w = 70, h = 20}
     lo.style = osc_styles.Time
 
     -- Audio
