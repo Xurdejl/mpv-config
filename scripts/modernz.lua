@@ -1291,16 +1291,25 @@ layouts = function ()
     local refY = posY
         
     -- Seekbar
+
+    -- Helper function to check if time is over an hour
+    local function is_time_over_hour(seconds)
+        return math.floor(seconds / 3600) > 0
+    end
+
     new_element("seekbarbg", "box")
     lo = add_layout("seekbarbg")
-    lo.geometry = {x = refX , y = refY - 100, an = 5, w = osc_geo.w - 50, h = 2}
+    local duration = mp.get_property_number("duration", 0)
+    local seekbar_width = osc_geo.w - (is_time_over_hour(duration) and 200 or 155)
+
+    lo.geometry = {x = refX, y = refY - 92, an = 5, w = (state.tc_ms and seekbar_width  - 60 or seekbar_width), h = 2}
     lo.layer = 13
     lo.style = osc_styles.SeekbarBg
     lo.alpha[1] = 128
     lo.alpha[3] = 128
 
     lo = add_layout("seekbar")
-    lo.geometry = {x = refX, y = refY - 100, an = 5, w = osc_geo.w - 50, h = 16}
+    lo.geometry = {x = refX, y = refY - 92, an = 5, w = (state.tc_ms and seekbar_width - 60 or seekbar_width), h = 16}
     lo.style = osc_styles.SeekbarFg
     lo.slider.gap = 7
     lo.slider.tooltip_style = osc_styles.Tooltip
@@ -1381,11 +1390,11 @@ layouts = function ()
 
     -- Time
     lo = add_layout("tc_left")
-    lo.geometry = {x = 25, y = refY - 84, an = 7, w = 100, h = 20}
+    lo.geometry = {x = 25, y = refY - 100, an = 7, w = 70, h = 20}
     lo.style = osc_styles.Time
         
     lo = add_layout("tc_right")
-    lo.geometry = {x = osc_geo.w - 25 , y = refY -84, an = 9, w = 100, h = 20}
+    lo.geometry = {x = osc_geo.w - 25 , y = refY - 100, an = 9, w = 70, h = 20}
     lo.style = osc_styles.Time
 
     -- Audio
@@ -2061,14 +2070,40 @@ local function osc_init()
         end
     end
 
+    -- Helper function to format time
+    local function format_time(seconds)
+        local hours = math.floor(seconds / 3600)
+        local minutes = math.floor((seconds % 3600) / 60)
+        local remaining_seconds = seconds % 60
+        local whole_seconds = math.floor(remaining_seconds)
+        local milliseconds = math.floor((remaining_seconds - whole_seconds) * 1000)
+        
+        -- Check total duration to determine format
+        local duration = mp.get_property_number("duration", 0)
+        local total_hours = math.floor(duration / 3600)
+        
+        if state.tc_ms then
+            -- With milliseconds
+            if total_hours > 0 then
+                return string.format("%02d:%02d:%02d.%03d", hours, minutes, whole_seconds, milliseconds)
+            else
+                return string.format("%02d:%02d.%03d", minutes, whole_seconds, milliseconds)
+            end
+        else
+            -- Without milliseconds
+            if total_hours > 0 then
+                return string.format("%02d:%02d:%02d", hours, minutes, whole_seconds)
+            else
+                return string.format("%02d:%02d", minutes, whole_seconds)
+            end
+        end
+    end
+
     -- tc_left (current pos)
     ne = new_element("tc_left", "button")
     ne.content = function ()
-        if state.tc_ms then
-            return mp.get_property_osd("playback-time/full"):gsub("-", "")
-        else
-            return mp.get_property_osd("playback-time"):gsub("-", "")
-        end
+        local playback_time = mp.get_property_number("playback-time", 0)
+        return format_time(playback_time)
     end
     ne.eventresponder["mbtn_left_up"] = function ()
         state.tc_ms = not state.tc_ms
@@ -2079,23 +2114,19 @@ local function osc_init()
     ne = new_element("tc_right", "button")
     ne.visible = (mp.get_property_number("duration", 0) > 0)
     ne.content = function ()
-        if mp.get_property_number("duration", 0) <= 0 then return "--:--:--" end
+        local duration = mp.get_property_number("duration", 0)
+        local remaining_time = mp.get_property_number("playtime-remaining", 0)
+        if duration <= 0 then return "--:--" end
         if state.rightTC_trem then
             local minus = user_opts.unicodeminus and UNICODE_MINUS or "-"
-            if state.tc_ms then
-                return (minus..mp.get_property_osd("playtime-remaining/full"))
-            else
-                return (minus..mp.get_property_osd("playtime-remaining"))
-            end
+            return minus .. format_time(remaining_time)
         else
-            if state.tc_ms then
-                return (mp.get_property_osd("duration/full"))
-            else
-                return (mp.get_property_osd("duration"))
-            end
+            return format_time(duration)
         end
     end
-    ne.eventresponder["mbtn_left_up"] = function () state.rightTC_trem = not state.rightTC_trem end
+    ne.eventresponder["mbtn_left_up"] = function ()
+        state.rightTC_trem = not state.rightTC_trem
+    end
 
     -- load layout
     layouts()
