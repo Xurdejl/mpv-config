@@ -4,7 +4,7 @@
 
 <p align="center"><samp>「 These are my personal opinionated MPV settings 」</samp></p>
 
-![preview.png](https://i.postimg.cc/mD1Vmn2T/preview.webp)
+![img](https://i.imgur.com/CsMV7sZ.png)
 
 ## 🌨️ Shaders
 
@@ -18,7 +18,7 @@
 
 ## 🔮 Scripts
 
-- **[ModernX](https://github.com/zydezu/ModernX)** - A modern OSC UI replacement for MPV that retains the functionality of the default OSC.
+- **[ModernZ](https://github.com/Samillion/ModernZ)** - A sleek and modern OSC for mpv designed to enhance functionality by adding more features, all while preserving the core standards of mpv's OSC.
 
 - **[SmartCopyPaste](https://github.com/Eisa01/mpv-scripts?tab=readme-ov-file#smartcopypaste)** - Paste URLs and files directly from the clipboard into mpv.
 
