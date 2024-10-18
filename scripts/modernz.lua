@@ -238,7 +238,7 @@ local sub_track_count = 0
 local window_control_box_width = 138
 local is_december = os.date("*t").month == 12
 local UNICODE_MINUS = string.char(0xe2, 0x88, 0x92)  -- UTF-8 for U+2212 MINUS SIGN
-local iconfont = "FluentSystemIcons-Regular"
+local iconfont = "fluent-system-icons"
 
 local function osc_color_convert(color)
     return color:sub(6,7) .. color:sub(4,5) ..  color:sub(2,3)
