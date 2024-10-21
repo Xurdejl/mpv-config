@@ -14,108 +14,110 @@ local utils = require 'mp.utils'
 -- do not touch, change them in modernz.conf
 local user_opts = {
     -- General
-    language = "en",                       -- For other langs: https://github.com/Samillion/ModernZ#osc-language
-    idlescreen = true,                     -- show mpv logo on idle
-    windowcontrols = "auto",               -- whether to show OSC window controls, "auto", "yes" or "no"
-    showwindowed = true,                   -- show OSC when windowed?
-    showfullscreen = true,                 -- show OSC when fullscreen?
-    greenandgrumpy = false,                -- disable santa hat in December
+    language = "en",                       -- For other languages, visit: https://github.com/Samillion/ModernZ#translations
+    idlescreen = true,                     -- Show MPV logo when idle
+    windowcontrols = "auto",               -- Show OSC window controls: "auto", "yes", or "no"
+    showwindowed = true,                   -- Show OSC when windowed
+    showfullscreen = true,                 -- Show OSC when fullscreen
+    greenandgrumpy = false,                -- Disable Santa hat in December
 
     -- Colors
-    osc_color = "#000000",                 -- accent of the OSC and the title bar
-    window_title_color = "#FFFFFF",        -- color of title in borderless/fullscreen mode
-    window_controls_color = "#FFFFFF",     -- color of window controls (close, min, max) in borderless/fullscreen mode
-    title_color = "#FFFFFF",               -- color of the title (above seekbar)
-    seekbarfg_color = "#60CDFF",           -- color of the seekbar progress and handle
-    seekbarbg_color = "#FFFFFF",           -- color of the remaining seekbar
-    vol_bar_match_seek = false,            -- match volume bar color with seekbar color? ignores side_buttons_color
-    time_color = "#FFFFFF",                -- color of timestamps (below seekbar)
-    side_buttons_color = "#FFFFFF",        -- color of side buttons (audio, sub, playlist, vol, loop, info..etc)
-    middle_buttons_color = "#FFFFFF",      -- color of middle buttons (skip, jump, chapter...etc)
-    playpause_color = "#FFFFFF",           -- color of play/pause button
+    osc_color = "#000000",                 -- Accent color of the OSC and title bar
+    window_title_color = "#FFFFFF",        -- Color of the title in borderless/fullscreen mode
+    window_controls_color = "#FFFFFF",     -- Color of the window controls (close, minimize, maximize) in borderless/fullscreen mode
+    title_color = "#FFFFFF",               -- Color of the title (above seekbar)
+    seekbarfg_color = "#60CDFF",           -- Color of the seekbar progress and handle
+    seekbarbg_color = "#FFFFFF",           -- Color of the remaining seekbar
+    vol_bar_match_seek = false,            -- Match volume bar color with seekbar color (ignores side_buttons_color)
+    time_color = "#FFFFFF",                -- Color of the timestamps (below seekbar)
+    side_buttons_color = "#FFFFFF",        -- Color of the side buttons (audio, subtitles, playlist, etc.)
+    middle_buttons_color = "#FFFFFF",      -- Color of the middle buttons (skip, jump, chapter, etc.)
+    playpause_color = "#FFFFFF",           -- Color of the play/pause button
 
     -- Buttons
-    hovereffect = true,                    -- whether buttons have a glowing effect when hovered over
+    hovereffect = true,                    -- Enable glowing effect when buttons are hovered over
 
-    showjump = false,                      -- show "jump forward/backward 10 seconds" buttons 
-    showskip = true,                       -- show the skip back and forward (chapter) buttons
-    shownextprev = true,                   -- show the next/previous playlist track buttons
+    showjump = false,                      -- Show "jump forward/backward 10 seconds" buttons
+    showskip = true,                       -- Show the skip back and forward (chapter) buttons
+    shownextprev = true,                   -- Show next/previous playlist track buttons
 
-    showplaylist = false,                  -- show playlist button? LClick: simple playlist, RClick: interactive playlist
-    showinfo = false,                      -- show the info button
-    showloop = false,                      -- show the loop button
-    showfullscreen = true,                 -- show fullscreen toggle button
-    showontop = true,                      -- show window on top button
-    showscreenshot = false,                -- show screenshot button
-    screenshot_flag = "subtitles",         -- flag for the screenshot button. subtitles, video, window, each-frame
-                                           -- https://mpv.io/manual/master/#command-interface-screenshot-%3Cflags%3E
+    showplaylist = false,                  -- Show playlist button: Left-click for simple playlist, Right-click for interactive playlist
+    showinfo = false,                      -- Show info button
+    showloop = false,                      -- Show loop button
+    showfullscreen = true,                 -- Show fullscreen toggle button
+    showontop = true,                      -- Show window on top button
+    showscreenshot = false,                -- Show screenshot button
+    screenshot_flag = "subtitles",         -- Flag for screenshot button: "subtitles", "video", "window", "each-frame"
+                                           -- See https://mpv.io/manual/master/#command-interface-screenshot-%3Cflags%3E
 
     -- Scaling
-    vidscale = true,                       -- whether to scale the controller with the video
-    scalewindowed = 1.0,                   -- scaling of the controller when windowed
-    scalefullscreen = 1.0,                 -- scaling of the controller when fullscreen
-    scaleforcedwindow = 1.0,               -- scaling when rendered on a forced window
+    vidscale = true,                       -- Scale controller with the video
+    scalewindowed = 1.0,                   -- Scale factor when windowed
+    scalefullscreen = 1.0,                 -- Scale factor when fullscreen
+    scaleforcedwindow = 1.0,               -- Scale factor when rendered on a forced window
 
     -- Time & Volume
-    unicodeminus = false,                  -- whether to use the Unicode minus sign character in remaining time
-    timetotal = true,                      -- display total time instead of remaining time?
-    timems = false,                        -- display timecodes with milliseconds?
-    timefontsize = 18,                     -- the font size of the time
-    jumpamount = 10,                       -- change the jump amount (in seconds by default)
-    jumpiconnumber = true,                 -- show different icon when jumpamount is 5, 10, or 30
-    jumpmode = "relative",                 -- seek mode for jump buttons
-    volumecontrol = true,                  -- whether to show mute button and volume slider
-    volumecontroltype = "linear",          -- use "linear" or "log" (logarithmic) volume scale
+    unicodeminus = false,                  -- Use the Unicode minus sign in remaining time
+    timetotal = true,                      -- Display total time instead of remaining time
+    timems = false,                        -- Display timecodes with milliseconds
+    timefontsize = 18,                     -- Font size of the time display
+    jumpamount = 10,                       -- Jump amount in seconds
+    jumpiconnumber = true,                 -- Show different icon for 5, 10, or 30 second jumps
+    jumpmode = "relative",                 -- Seek mode for jump buttons
+    volumecontrol = true,                  -- Show mute button and volume slider
+    volumecontroltype = "linear",          -- Volume scale type: "linear" or "logarithmic"
 
     -- Seeking
-    seekbarkeyframes = false,              -- use keyframes when dragging the seekbar
-    seekbarhandlesize = 0.8,               -- size ratio of the slider handle, range 0 ~ 1
-    seekrange = true,                      -- show seekrange overlay
-    seekrangealpha = 150,                  -- transparency of seekranges
-    livemarkers = true,                    -- update seekbar chapter markers on duration change
+    seekbarkeyframes = false,              -- Use keyframes when dragging the seekbar
+    seekbarhandlesize = 0.8,               -- Size ratio of the seekbar handle (range: 0 ~ 1)
+    seekrange = true,                      -- Show seek range overlay
+    seekrangealpha = 150,                  -- Transparency of the seek range
+    livemarkers = true,                    -- Update chapter markers on the seekbar when duration changes
 
-    osc_on_seek = false,                   -- show osc when seeking? or input.conf: x script-message-to modernz osc-show
+    osc_on_seek = false,                   -- Show OSC when seeking
+    mouse_seek_pause = true,               -- Pause video while seeking with mouse move (on button hold)
 
-    automatickeyframemode = true,          -- set seekbarkeyframes based on video length to prevent laggy scrubbing on long videos 
-    automatickeyframelimit = 600,          -- videos of above this length (in seconds) will have seekbarkeyframes on
+    automatickeyframemode = true,          -- Automatically set keyframes for the seekbar based on video length
+    automatickeyframelimit = 600,          -- Videos longer than this (in seconds) will have keyframes on the seekbar
 
     -- UI [elements]
-    showtitle = true,                      -- show title in OSC (above seekbar)
-    showwindowtitle = false,               -- show window title in borderless/fullscreen mode
-    showwindowcontrols = true,             -- show window controls (close, min, max) in borderless/fullscreen
-    titleBarStrip = false,                 -- whether to make the title bar a singular bar instead of a black fade
-    title = "${media-title}",              -- title above seekbar. ${media-title} or ${filename} (can use /no-ext)
-    font = "mpv-osd-symbols",              -- mpv-osd-symbols = default osc font (or the one set in mpv.conf)
-    titlefontsize = 30,                    -- the font size of the title text (above seekbar)
-    chapter_fmt = "Chapter: %s",           -- chapter print format for seekbar-hover. "no" to disable
+    showtitle = true,                      -- Show title in the OSC (above seekbar)
+    showwindowtitle = false,               -- Show window title in borderless/fullscreen mode
+    showwindowcontrols = true,             -- Show window controls (close, minimize, maximize) in borderless/fullscreen
+    titleBarStrip = false,                 -- Display title bar as a single bar instead of a black fade
+    title = "${media-title}",              -- Title format: "${media-title}" or "${filename}"
+    font = "mpv-osd-symbols",              -- Font for the OSC (default: mpv-osd-symbols or the one set in mpv.conf)
+    titlefontsize = 30,                    -- Font size of the title text (above seekbar)
+    chapter_fmt = "Chapter: %s",           -- Format for chapter display on seekbar hover (set to "no" to disable)
 
-    persistentprogress = false,            -- always show a small progress line at the bottom of the screen
-    persistentprogressheight = 17,         -- the height of the persistentprogress bar
-    persistentbuffer = false,              -- on web videos, show the buffer on the persistent progress line
+    persistentprogress = false,            -- Always show a small progress line at the bottom of the screen
+    persistentprogressheight = 17,         -- Height of the persistent progress bar
+    persistentbuffer = false,              -- Show buffer status on web videos in the persistent progress line
 
     -- UI [behavior]
-    showonpause = true,                    -- whether to show osc when paused
-    keeponpause = true,                    -- whether to disable the hide timeout on pause
-    bottomhover = false,                   -- if the osc should only display when hovering at the bottom
-    raisesubs = true,                      -- whether to raise subtitles above the osc when it's shown
-    raisesubamount = 150,                  -- how much subtitles rise when the osc is shown
-    thumbnailborder = 2,                   -- the width of the thumbnail border (thumbfast)
+    showonpause = true,                    -- Show OSC when paused
+    keeponpause = true,                    -- Disable OSC hide timeout when paused
+    bottomhover = false,                   -- Show OSC only when hovering at the bottom
+    bottomhover_zone = 160,                -- Height of hover zone for bottomhover (in pixels)
+    raisesubs = true,                      -- Raise subtitles above the OSC when shown
+    raisesubamount = 150,                  -- Amount by which subtitles are raised when the OSC is shown (in pixels)
+    thumbnailborder = 2,                   -- Width of the thumbnail border (for thumbfast)
 
-    OSCfadealpha = 150,                    -- alpha of the background box for the OSC
-    boxalpha = 75,                         -- alpha of the window title bar
+    OSCfadealpha = 150,                    -- Alpha of the OSC background box
+    boxalpha = 75,                         -- Alpha of the window title bar
 
-    ontopborder = false,                   -- If you pin the window, keep window border?
-    loopinpause = false,                    -- activate looping by right clicking pause
+    ontopborder = false,                   -- Keep window border when pinned
+    loopinpause = true,                    -- Enable looping by right-clicking pause
 
-    visibility = "auto",                   -- only used at init to set visibility_mode(...)
+    visibility = "auto",                   -- Initial OSC visibility mode
 
     -- UI [time-based]
-    hidetimeout = 1000,                    -- duration in ms until OSC hides if no mouse movement
-    fadeduration = 250,                    -- duration of fade out in ms, 0 = no fade
-    minmousemove = 0,                      -- amount of pixels the mouse has to move for OSC to show
+    hidetimeout = 1000,                    -- Time (in ms) before OSC hides if no mouse movement
+    fadeduration = 250,                    -- Fade-out duration (in ms), set to 0 for no fade
+    minmousemove = 0,                      -- Minimum mouse movement (in pixels) required to show OSC
 
-    tick_delay = 1 / 60,                   -- minimum interval between OSC redraws in seconds
-    tick_delay_follow_display_fps = false,  -- use display fps as the minimum interval
+    tick_delay = 1 / 60,                   -- Minimum interval between OSC redraws (in seconds)
+    tick_delay_follow_display_fps = false, -- Use display FPS as the minimum redraw interval
 
     -- Mouse commands
     -- customize the button function based on mouse action
@@ -129,6 +131,9 @@ local user_opts = {
     -- playlist button mouse actions
     playlist_mbtn_left_command = "script-binding select/select-playlist; script-message-to modernz osc-hide",
     playlist_mbtn_right_command = "show-text ${playlist} 3000",
+
+    -- volume control icon mouse actions
+    volumectrl_mbtn_right_command = "script-binding select/select-audio-device; script-message-to modernz osc-hide",
 
     -- audio button mouse actions
     audio_track_mbtn_left_command = "script-binding select/select-aid; script-message-to modernz osc-hide",
@@ -191,9 +196,7 @@ local icons = {
 	}
 }
 
--- Localization
--- To add more languages:
--- https://github.com/Samillion/ModernZ#osc-language
+--- Localization
 local language = {
     ["en"] = {
 	    welcome = "{\\fs24\\1c&H0&\\1c&HFFFFFF&}Drop files or URLs to play here",
@@ -220,9 +223,32 @@ local language = {
     },
 }
 
+mp.observe_property("osc", "bool", function(name, value) if value == true then mp.set_property("osc", "no") end end)
+
+-- Load external locales if available
+local locale_file = mp.find_config_file('scripts/modernz-locale.lua')
+if locale_file then
+    local success, external = pcall(function()
+        return loadfile(locale_file)()
+    end)
+    
+    if success and external then
+        -- Merge external locales
+        for lang, strings in pairs(external) do
+            language[lang] = strings
+            -- Fill in any missing locales with English
+            for key, value in pairs(language["en"]) do
+                if strings[key] == nil then
+                    strings[key] = value
+                end
+            end
+        end
+    end
+end
+
 local texts
 local function set_osc_texts()
-    texts = language[user_opts.language]
+    texts = language[user_opts.language] or language["en"]
 end
 
 local thumbfast = {
@@ -610,7 +636,7 @@ end
 local function window_controls_enabled()
     local val = user_opts.windowcontrols
     if val == "auto" then
-        return not state.border or not state.title_bar or state.fullscreen
+        return not (state.border and state.title_bar) or state.fullscreen
     else
         return val ~= "no"
     end
@@ -1277,7 +1303,7 @@ layouts = function ()
     lo.layer = 10
     lo.alpha[3] = 0
 
-    if not user_opts.titleBarStrip and (not state.border or state.fullscreen) then
+    if not user_opts.titleBarStrip and (not (state.border and state.title_bar) or state.fullscreen) then
         new_element("TitleTransBg", "box")
         lo = add_layout("TitleTransBg")
         lo.geometry = {x = posX, y = -100, an = 7, w = osc_w, h = -1}
@@ -1317,7 +1343,7 @@ layouts = function ()
     local showjump = user_opts.showjump
     local showskip = user_opts.showskip
     local shownextprev = user_opts.shownextprev
-    local showfullscreen = user_opts.showfullscreen
+    local showfullscreen = user_opts.showfullscreen_button
     local showloop = user_opts.showloop
     local showinfo = user_opts.showinfo
     local showontop = user_opts.showontop
@@ -1522,7 +1548,9 @@ local function osc_init()
     local display_w, display_h, display_aspect = mp.get_osd_size()
     local scale = 1
 
-    if state.fullscreen then
+    if mp.get_property("video") == "no" then -- dummy/forced window
+        scale = user_opts.scaleforcedwindow
+    elseif state.fullscreen then
         scale = user_opts.scalefullscreen
     else
         scale = user_opts.scalewindowed
@@ -1733,6 +1761,7 @@ local function osc_init()
     -- vol_ctrl
     ne = new_element("vol_ctrl", "button")
     ne.enabled = audio_track_count > 0
+    ne.off = audio_track_count == 0
     ne.visible = (osc_param.playresx >= 760 - outeroffset) and user_opts.volumecontrol
     ne.content = function ()
         local volume = mp.get_property_number("volume", 0)
@@ -1749,6 +1778,7 @@ local function osc_init()
         end
     end
     ne.eventresponder["mbtn_left_up"] = function () mp.commandv("cycle", "mute") end
+    ne.eventresponder["mbtn_right_up"] = command_callback(user_opts.volumectrl_mbtn_right_command)
     ne.eventresponder["wheel_up_press"] =
         function () 
             if state.mute then mp.commandv("cycle", "mute") end
@@ -1960,7 +1990,7 @@ local function osc_init()
             -- mouse move events may pile up during seeking and may still get
             -- sent when the user is done seeking, so we need to throw away
             -- identical seeks
-            if mp.get_property("pause") == "no" then
+            if mp.get_property("pause") == "no" and user_opts.mouse_seek_pause then
                 state.playingWhilstSeeking = true
                 mp.commandv("cycle", "pause")
             end
@@ -2112,12 +2142,10 @@ local function osc_init()
         if duration <= 0 then return "--:--" end
         
         local time_to_display = state.rightTC_trem and 
-            mp.get_property_number("playtime-remaining", 0) or 
-            duration
+            mp.get_property_number("playtime-remaining", 0) or duration
             
         local prefix = state.rightTC_trem and 
-            (user_opts.unicodeminus and UNICODE_MINUS or "-") or 
-            ""
+            (user_opts.unicodeminus and UNICODE_MINUS or "-") or ""
             
         return prefix .. format_time(time_to_display)
     end
@@ -2264,7 +2292,7 @@ local function process_event(source, what)
                 )
             ) then
                 if user_opts.bottomhover then -- if enabled, only show osc if mouse is hovering at the bottom of the screen (where the UI elements are)
-                    if mouseY > osc_param.playresy - 160 or (not state.border or state.fullscreen) and mouseY < 40 then -- account for scaling options
+                    if mouseY > osc_param.playresy - (user_opts.bottomhover_zone or 160) or (not (state.border and state.title_bar) or state.fullscreen) and mouseY < 40 then -- account for scaling options
                         show_osc()
                     else
                         hide_osc()
@@ -2534,7 +2562,7 @@ tick = function()
             mp.disable_key_bindings("showhide_wc")
             state.showhide_enabled = false
         end
-    elseif state.fullscreen and user_opts.showfullscreen
+    elseif (state.fullscreen and user_opts.showfullscreen)
         or (not state.fullscreen and user_opts.showwindowed) then
 
         -- render the OSC
@@ -2595,12 +2623,6 @@ local function set_tick_delay(_, display_fps)
     end
     tick_delay = 1 / display_fps
 end
-
-mp.observe_property("osc", "bool", function(name, value)
-    if value == true then
-        mp.set_property("osc", "no")
-    end
-end)
 
 mp.register_event("shutdown", shutdown)
 mp.register_event("start-file", request_init)
@@ -2787,7 +2809,11 @@ mp.observe_property("pause", "bool", function(name, enabled)
 	pause_state(name, enabled)
 	if user_opts.showonpause then
 		if enabled then
+            if user_opts.keeponpause then
 			visibility_mode("always", true)
+            else
+                visibility_mode("auto", true)
+            end
 			show_osc()
 		else
 			visibility_mode("auto", true)
