@@ -282,7 +282,7 @@ local function set_osc_styles()
         SeekbarFg = "{\\blur1\\bord1\\1c&H" .. osc_color_convert(user_opts.seekbarfg_color) .. "&}",
         VolumebarBg = "{\\blur0\\bord0\\1c&H999999&}",
         VolumebarFg = "{\\blur1\\bord1\\1c&H" .. osc_color_convert(user_opts.side_buttons_color) .. "&}",
-        Ctrl1 = "{\\blur0\\bord0\\1c&H" .. osc_color_convert(user_opts.playpause_color) .. "&\\3c&HFFFFFF&\\fs34\\fn" .. iconfont .. "}",
+        Ctrl1 = "{\\blur0\\bord0\\1c&H" .. osc_color_convert(user_opts.playpause_color) .. "&\\3c&HFFFFFF&\\fs30\\fn" .. iconfont .. "}",
         Ctrl2 = "{\\blur0\\bord0\\1c&H" .. osc_color_convert(user_opts.middle_buttons_color) .. "&\\3c&HFFFFFF&\\fs20\\fn" .. iconfont .. "}",
         Ctrl2Flip = "{\\blur0\\bord0\\1c&H" .. osc_color_convert(user_opts.middle_buttons_color) .. "&\\3c&HFFFFFF&\\fs24\\fn" .. iconfont .. "\\fry180}",
         Ctrl3 = "{\\blur0\\bord0\\1c&H" .. osc_color_convert(user_opts.side_buttons_color) .. "&\\3c&HFFFFFF&\\fs25\\fn" .. iconfont .. "}",
@@ -1322,14 +1322,14 @@ layouts = function ()
     -- Seekbar
     new_element("seekbarbg", "box")
     lo = add_layout("seekbarbg")
-    lo.geometry = {x = refX , y = refY - 100, an = 5, w = osc_geo.w - 50, h = 2}
+    lo.geometry = {x = refX , y = refY - 96, an = 5, w = osc_geo.w - 50, h = 2}
     lo.layer = 13
     lo.style = osc_styles.SeekbarBg
     lo.alpha[1] = 128
     lo.alpha[3] = 128
 
     lo = add_layout("seekbar")
-    lo.geometry = {x = refX, y = refY - 100, an = 5, w = osc_geo.w - 50, h = 16}
+    lo.geometry = {x = refX, y = refY - 96, an = 5, w = osc_geo.w - 50, h = 16}
     lo.style = osc_styles.SeekbarFg
     lo.slider.gap = 7
     lo.slider.tooltip_style = osc_styles.Tooltip
