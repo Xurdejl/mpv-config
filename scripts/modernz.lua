@@ -80,21 +80,24 @@ local user_opts = {
     automatickeyframemode = true,          -- Automatically set keyframes for the seekbar based on video length
     automatickeyframelimit = 600,          -- Videos longer than this (in seconds) will have keyframes on the seekbar
 
-    -- UI [elements]
+    -- UI Elements
     showtitle = true,                      -- Show title in the OSC (above seekbar)
+    title = "${media-title}",              -- Title format: "${media-title}" or "${filename}"
+    titlefontsize = 30,                    -- Font size of the title text (above seekbar)
+    font = "mpv-osd-symbols",              -- Font for the OSC (default: mpv-osd-symbols or the one set in mpv.conf)
+
     showwindowtitle = false,               -- Show window title in borderless/fullscreen mode
     showwindowcontrols = true,             -- Show window controls (close, minimize, maximize) in borderless/fullscreen
     titleBarStrip = false,                 -- Display title bar as a single bar instead of a black fade
-    title = "${media-title}",              -- Title format: "${media-title}" or "${filename}"
-    font = "mpv-osd-symbols",              -- Font for the OSC (default: mpv-osd-symbols or the one set in mpv.conf)
-    titlefontsize = 30,                    -- Font size of the title text (above seekbar)
+    windowcontrols_title = "${media-title}", -- Same as title but for windowcontrols
+
     chapter_fmt = "Chapter: %s",           -- Format for chapter display on seekbar hover (set to "no" to disable)
 
     persistentprogress = false,            -- Always show a small progress line at the bottom of the screen
     persistentprogressheight = 17,         -- Height of the persistent progress bar
     persistentbuffer = false,              -- Show buffer status on web videos in the persistent progress line
 
-    -- UI [behavior]
+    -- UI Behavior
     showonpause = true,                    -- Show OSC when paused
     keeponpause = true,                    -- Disable OSC hide timeout when paused
     bottomhover = false,                   -- Show OSC only when hovering at the bottom
@@ -111,7 +114,7 @@ local user_opts = {
 
     visibility = "auto",                   -- Initial OSC visibility mode
 
-    -- UI [time-based]
+    -- Time-based UI settings
     hidetimeout = 1000,                    -- Time (in ms) before OSC hides if no mouse movement
     fadeduration = 250,                    -- Fade-out duration (in ms), set to 0 for no fade
     minmousemove = 0,                      -- Minimum mouse movement (in pixels) required to show OSC
@@ -1244,7 +1247,7 @@ local function window_controls()
     if user_opts.showwindowtitle then
         ne = new_element("windowtitle", "button")
         ne.content = function ()
-            local title = mp.command_native({"expand-text", mp.get_property("title")}) or ""
+            local title = mp.command_native({"expand-text", user_opts.windowcontrols_title}) or ""
             title = title:gsub("\n", " ")
             return title ~= "" and mp.command_native({"escape-ass", title}) or "mpv"
         end
