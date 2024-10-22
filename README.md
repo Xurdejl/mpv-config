@@ -1,8 +1,8 @@
 <h1 align="center">❄️📖✨ MPV's madōsho ✨📖❄️</h1> 
 
-<h3 align="center"><samp>&gt; Welcome to my MPV's grimoire, designed for an optimized anime viewing experience!</samp></h3>
+<h3 align="center"><samp>&gt; Welcome to my MPV's grimoire, a collection of settings for an optimized anime viewing experience!</samp></h3>
 
-<p align="center"><samp>「 These are my personal opinionated MPV settings 」</samp></p>
+<p align="center"><samp>「 These are my personal opinionated MPV settings. 」</samp></p>
 
 ![img](https://i.imgur.com/8l87par.png)
 
@@ -19,6 +19,8 @@
 ## 🔮 Scripts
 
 - **[ModernZ](https://github.com/Samillion/ModernZ)** - A sleek and modern OSC for mpv designed to enhance functionality by adding more features, all while preserving the core standards of mpv's OSC.
+
+- **[evafast](https://github.com/po5/evafast)** - Fast-forwarding and seeking on a single key, with quality of life features like a slight slowdown when subtitles are shown.
 
 - **[SmartCopyPaste](https://github.com/Eisa01/mpv-scripts?tab=readme-ov-file#smartcopypaste)** - Paste URLs and files directly from the clipboard into mpv.
 
