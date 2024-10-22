@@ -33,6 +33,7 @@ local user_opts = {
     side_buttons_color = "#FFFFFF",        -- Color of the side buttons (audio, subtitles, playlist, etc.)
     middle_buttons_color = "#FFFFFF",      -- Color of the middle buttons (skip, jump, chapter, etc.)
     playpause_color = "#FFFFFF",           -- Color of the play/pause button
+    held_element_color = "#999999",        -- Color of the element when held down (pressed)
 
     -- Buttons
     hovereffect = true,                    -- Enable glowing effect when buttons are hovered over
@@ -291,7 +292,7 @@ local function set_osc_styles()
         Title = "{\\blur1\\bord0.5\\1c&H" .. osc_color_convert(user_opts.title_color) .. "&\\3c&H0&\\fs".. user_opts.titlefontsize .."\\q2\\fn" .. user_opts.font .. "}",
         WindowTitle = "{\\blur1\\bord0.5\\1c&H" .. osc_color_convert(user_opts.window_title_color) .. "&\\3c&H0&\\fs".. 20 .."\\q2\\fn" .. user_opts.font .. "}",
         WinCtrl = "{\\blur1\\bord0.5\\1c&H" .. osc_color_convert(user_opts.window_controls_color) .. "&\\3c&H0&\\fs".. 20 .."\\fnmpv-osd-symbols}",
-        elementDown = "{\\1c&H999999&}",
+        elementDown = "{\\1c&H" .. osc_color_convert(user_opts.held_element_color) .. "&}",
         elementHover = "{\\blur5\\2c&HFFFFFF&}",
         wcBar = "{\\1c&H" .. osc_color_convert(user_opts.osc_color) .. "&}",
     }
@@ -1207,8 +1208,7 @@ local function window_controls()
         -- Close: 🗙
         local ne = new_element("close", "button")
         ne.content = "\238\132\149"
-        ne.eventresponder["mbtn_left_up"] =
-            function () mp.commandv("quit") end
+        ne.eventresponder["mbtn_left_up"] = function () mp.commandv("quit") end
         lo = add_layout("close")
         lo.geometry = third_geo
         lo.style = osc_styles.WinCtrl
@@ -1217,19 +1217,14 @@ local function window_controls()
         -- Minimize: 🗕
         ne = new_element("minimize", "button")
         ne.content = "\238\132\146"
-        ne.eventresponder["mbtn_left_up"] =
-            function () mp.commandv("cycle", "window-minimized") end
+        ne.eventresponder["mbtn_left_up"] = function () mp.commandv("cycle", "window-minimized") end
         lo = add_layout("minimize")
         lo.geometry = first_geo
         lo.style = osc_styles.WinCtrl
     
         -- Maximize: 🗖 /🗗
         ne = new_element("maximize", "button")
-        if state.maximized or state.fullscreen then
-            ne.content = "\238\132\148"
-        else
-            ne.content = "\238\132\147"
-        end
+        ne.content = (state.maximized or state.fullscreen) and "\238\132\148" or "\238\132\147"
         ne.eventresponder["mbtn_left_up"] =
             function ()
                if state.fullscreen then
@@ -1625,15 +1620,14 @@ local function osc_init()
     ne = new_element("playpause", "button")
     ne.content = function ()
         if mp.get_property("eof-reached") == "yes" then
-            return (icons.replay)
+            return icons.replay
         elseif mp.get_property("pause") == "yes" and not state.playingWhilstSeeking then
-            return (icons.play)
+            return icons.play
         else
-            return (icons.pause)
+            return icons.pause
         end
     end
-    ne.eventresponder["mbtn_left_up"] =
-        function ()
+    ne.eventresponder["mbtn_left_up"] = function ()
             if mp.get_property("eof-reached") == "yes" then
                 mp.commandv("seek", 0, "absolute-percent")
                 mp.commandv("set", "pause", "no")
@@ -1641,8 +1635,7 @@ local function osc_init()
                 mp.commandv("cycle", "pause")
             end
         end
-    ne.eventresponder["mbtn_right_down"] =
-        function ()
+    ne.eventresponder["mbtn_right_down"] = function ()
             if state.looping then
                 mp.command("show-text '" .. texts.loopdisable .. "'")
             else
@@ -1655,10 +1648,7 @@ local function osc_init()
     if user_opts.showjump then
         local jumpamount = user_opts.jumpamount
         local jumpmode = user_opts.jumpmode
-        local jump_icon = icons.jumpicons.default
-        if user_opts.jumpiconnumber then
-            jump_icon = icons.jumpicons[jumpamount] or icons.jumpicons.default
-        end
+        local jump_icon = user_opts.jumpiconnumber and icons.jumpicons[jumpamount] or icons.jumpicons.default
 
         --jumpback
         ne = new_element("jumpback", "button")
@@ -1782,13 +1772,11 @@ local function osc_init()
     end
     ne.eventresponder["mbtn_left_up"] = function () mp.commandv("cycle", "mute") end
     ne.eventresponder["mbtn_right_up"] = command_callback(user_opts.volumectrl_mbtn_right_command)
-    ne.eventresponder["wheel_up_press"] =
-        function () 
+    ne.eventresponder["wheel_up_press"] = function () 
             if state.mute then mp.commandv("cycle", "mute") end
             mp.commandv("osd-auto", "add", "volume", 5)
         end
-    ne.eventresponder["wheel_down_press"] =
-        function () 
+    ne.eventresponder["wheel_down_press"] = function () 
             if state.mute then mp.commandv("cycle", "mute") end
             mp.commandv("osd-auto", "add", "volume", -5)
         end
@@ -1799,8 +1787,7 @@ local function osc_init()
     ne.enabled = audio_track_count > 0
     ne.slider.markerF = function () return {} end
     ne.slider.seekRangesF = function() return nil end
-    ne.slider.posF =
-        function ()
+    ne.slider.posF = function ()
             local volume = mp.get_property_number("volume")
             if user_opts.volumecontrol == "log" then
                 return math.sqrt(volume * 100)
@@ -1809,9 +1796,7 @@ local function osc_init()
             end
         end
     ne.slider.tooltipF = function (pos) return (audio_track_count > 0) and set_volume(pos) or "" end
-    ne.eventresponder["mouse_move"] =
-        function (element)
-            -- see seekbar code for reference
+    ne.eventresponder["mouse_move"] = function (element)
             local pos = get_slider_value(element)
             local setvol = set_volume(pos)
             if element.state.lastseek == nil or
@@ -1820,8 +1805,7 @@ local function osc_init()
                     element.state.lastseek = setvol
             end
         end
-    ne.eventresponder["mbtn_left_down"] =
-        function (element)
+    ne.eventresponder["mbtn_left_down"] = function (element)
             local pos = get_slider_value(element)
             mp.commandv("set", "volume", set_volume(pos))
         end
@@ -1831,13 +1815,7 @@ local function osc_init()
 
     --tog_fs
     ne = new_element("tog_fs", "button")
-    ne.content = function ()
-        if state.fullscreen then
-            return (icons.fullscreen_exit)
-        else
-            return (icons.fullscreen)
-        end
-    end
+    ne.content = function () return state.fullscreen and icons.fullscreen_exit or icons.fullscreen end
     ne.visible = (osc_param.playresx >= 250)
     ne.eventresponder["mbtn_left_up"] = function () mp.commandv("cycle", "fullscreen") end
 
@@ -1851,24 +1829,11 @@ local function osc_init()
 
     --tog_loop
     ne = new_element("tog_loop", "button")
-    ne.content = function ()
-        if state.looping then
-            return (icons.loop_on)
-        else
-            return (icons.loop_off)
-        end
-    end
+    ne.content = function () return state.looping and icons.loop_on or icons.loop_off end
     ne.visible = (osc_param.playresx >= 700 - outeroffset - (user_opts.showinfo and 0 or 100) - (user_opts.showfullscreen and 0 or 100))
     ne.tooltip_style = osc_styles.Tooltip
-    ne.tooltipF = function ()
-        local msg = texts.loopenable
-        if state.looping then
-            msg = texts.loopdisable
-        end
-        return msg
-    end
-    ne.eventresponder["mbtn_left_up"] =
-        function ()
+    ne.tooltipF = function () return state.looping and texts.loopdisable or texts.loopenable end
+    ne.eventresponder["mbtn_left_up"] = function ()
             if state.looping then
                 mp.command("show-text '" .. texts.loopdisable .. "'")
             else
@@ -1880,24 +1845,11 @@ local function osc_init()
 
     --tog_ontop
     ne = new_element("tog_ontop", "button")
-    ne.content = function ()
-        if mp.get_property("ontop") == "no" then
-            return (icons.ontop_on)
-        else
-            return (icons.ontop_off)
-        end
-    end
+    ne.content = function () return mp.get_property("ontop") == "no" and icons.ontop_on or icons.ontop_off end
     ne.tooltip_style = osc_styles.Tooltip
-    ne.tooltipF = function ()
-        local msg = texts.ontopdisable
-        if mp.get_property("ontop") == "no" then
-            msg = texts.ontop
-        end
-        return msg
-    end
+    ne.tooltipF = function () return mp.get_property("ontop") == "no" and texts.ontop or texts.ontopdisable end
     ne.visible = (osc_param.playresx >= 760 - outeroffset - (user_opts.showloop and 0 or 100) - (user_opts.showinfo and 0 or 100) - (user_opts.showfullscreen and 0 or 100))
-    ne.eventresponder["mbtn_left_up"] =
-        function () 
+    ne.eventresponder["mbtn_left_up"] = function () 
             mp.commandv("cycle", "ontop") 
             if state.initialborder == "yes" and not user_opts.ontopborder then
                 if mp.get_property("ontop") == "yes" then
@@ -1907,7 +1859,6 @@ local function osc_init()
                 end
             end
         end
-
     ne.eventresponder["mbtn_right_up"] = function () mp.commandv("cycle", "ontop") end
 
     --screenshot
@@ -1916,10 +1867,11 @@ local function osc_init()
     ne.tooltip_style = osc_styles.Tooltip
     ne.tooltipF = texts.screenshot
     ne.visible = (osc_param.playresx >= 870 - outeroffset - (user_opts.showontop and 0 or 100) - (user_opts.showloop and 0 or 100) - (user_opts.showinfo and 0 or 100) - (user_opts.showfullscreen and 0 or 100))
-    ne.eventresponder["mbtn_left_up"] =
-        function ()
+    ne.eventresponder["mbtn_left_up"] = function ()
             local tempSubPosition = mp.get_property("sub-pos")
-            if user_opts.screenshot_flag == "subtitles" then mp.commandv("set", "sub-pos", 100) end
+        if user_opts.screenshot_flag == "subtitles" or user_opts.screenshot_flag == "subtitles+each-frame" then 
+            mp.commandv("set", "sub-pos", 100) 
+        end
             mp.commandv("screenshot", user_opts.screenshot_flag)
             mp.commandv("set", "sub-pos", tempSubPosition)
             mp.command("show-text '" .. texts.screenshotsaved .. "'")
@@ -1987,74 +1939,63 @@ local function osc_init()
         end
         return nranges
     end
-    ne.eventresponder["mouse_move"] = --keyframe seeking when mouse is dragged
-        function (element)
-            if not element.state.mbtnleft then return end -- allow drag for mbtnleft only!
-            -- mouse move events may pile up during seeking and may still get
-            -- sent when the user is done seeking, so we need to throw away
-            -- identical seeks
-            if mp.get_property("pause") == "no" and user_opts.mouse_seek_pause then
-                state.playingWhilstSeeking = true
+    ne.eventresponder["mouse_move"] = function (element)
+        if not element.state.mbtnleft then return end -- allow drag for mbtnleft only!
+        -- mouse move events may pile up during seeking and may still get
+        -- sent when the user is done seeking, so we need to throw away
+        -- identical seeks
+        if mp.get_property("pause") == "no" and user_opts.mouse_seek_pause then
+            state.playingWhilstSeeking = true
+            mp.commandv("cycle", "pause")
+        end
+        local seekto = get_slider_value(element)
+        if element.state.lastseek == nil or
+          element.state.lastseek ~= seekto then
+            local flags = "absolute-percent"
+            if not user_opts.seekbarkeyframes then
+                flags = flags .. "+exact"
+            end
+            mp.commandv("seek", seekto, flags)
+            element.state.lastseek = seekto
+        end
+
+    end
+    ne.eventresponder["mbtn_left_down"] = function (element)
+        element.state.mbtnleft = true
+        mp.commandv("seek", get_slider_value(element), "absolute-percent+exact")
+    end
+    ne.eventresponder["shift+mbtn_left_down"] = function (element)
+        element.state.mbtnleft = true
+        mp.commandv("seek", get_slider_value(element), "absolute-percent")
+    end
+    ne.eventresponder["mbtn_left_up"] = function (element)
+        element.state.mbtnleft = false
+    end
+    ne.eventresponder["mbtn_right_down"] = function (element)
+        local chapter
+        local pos = get_slider_value(element)
+        local diff = math.huge
+
+        for i, marker in ipairs(element.slider.markerF()) do
+            if math.abs(pos - marker) < diff then
+                diff = math.abs(pos - marker)
+                chapter = i
+            end
+        end
+
+        if chapter then
+            mp.set_property("chapter", chapter - 1)
+        end
+    end
+    ne.eventresponder["reset"] = function (element)
+        element.state.lastseek = nil
+        if state.playingWhilstSeeking then
+            if mp.get_property("eof-reached") == "no" then
                 mp.commandv("cycle", "pause")
             end
-            local seekto = get_slider_value(element)
-            if element.state.lastseek == nil or
-                element.state.lastseek ~= seekto then
-                    local flags = "absolute-percent"
-                    if not user_opts.seekbarkeyframes then
-                        flags = flags .. "+exact"
-                    end
-                    mp.commandv("seek", seekto, flags)
-                    element.state.lastseek = seekto
-            end
-
+            state.playingWhilstSeeking = false
         end
-    ne.eventresponder["mbtn_left_down"] = --exact seeks on single clicks
-        function (element)
-            element.state.mbtnleft = true
-            mp.commandv("seek", get_slider_value(element), "absolute-percent", "exact")
-        end
-    ne.eventresponder["shift+mbtn_left_down"] = --keyframe seeks on shift+left click
-        function (element)
-            element.state.mbtnleft = true
-            mp.commandv("seek", get_slider_value(element), "absolute-percent")
-        end
-    ne.eventresponder["mbtn_left_up"] =
-        function (element)
-            element.state.mbtnleft = false
-        end
-    ne.eventresponder["mbtn_right_down"] = --seeks to chapter start
-        function (element)
-            if mp.get_property_native("chapter-list/count") > 0 then
-                local pos = get_slider_value(element)
-                local markers = element.slider.markerF()
-
-                -- Compares the difference between the right-clicked position
-                -- and the iterated marker to determine the closest chapter
-                local ch, diff
-                for i, marker in ipairs(markers) do
-                    if not diff or (math.abs(pos - marker) < diff) then
-                        diff = math.abs(pos - marker)
-                        ch = i - 1 --chapter index starts from 0
-                    end
-                end
-
-                mp.commandv("set", "chapter", ch)
-                if user_opts.chapters_osd then
-                    mp.command("show-text ${chapter-list} 3000")
-                end
-            end
-        end
-    ne.eventresponder["reset"] =
-        function (element)
-            element.state.lastseek = nil
-            if state.playingWhilstSeeking then
-                if mp.get_property("eof-reached") == "no" then
-                    mp.commandv("cycle", "pause")
-                end
-                state.playingWhilstSeeking = false
-            end
-        end
+    end
     ne.eventresponder["wheel_up_press"] = function () mp.commandv("osd-auto", "seek",  10) end
     ne.eventresponder["wheel_down_press"] = function () mp.commandv("osd-auto", "seek", -10) end
 
@@ -2248,7 +2189,6 @@ local function process_event(source, what)
         reset_timeout() -- clicking resets the hideosc timer
 
         for n = 1, #elements do
-
             if mouse_hit(elements[n]) and
                 elements[n].eventresponder and
                 (elements[n].eventresponder[source .. "_up"] or
@@ -2890,7 +2830,7 @@ local function validate_user_opts()
 		user_opts.osc_color, user_opts.seekbarfg_color, user_opts.seekbarbg_color, 
 		user_opts.title_color, user_opts.time_color, user_opts.side_buttons_color, 
 		user_opts.middle_buttons_color, user_opts.playpause_color, user_opts.window_title_color, 
-		user_opts.window_controls_color,
+        user_opts.window_controls_color, user_opts.held_element_color,
     }
 
     for _, color in pairs(colors) do
