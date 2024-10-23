@@ -217,8 +217,8 @@ local language = {
 	    nolist = "Empty playlist.",
 	    chapter = "Chapter",
 	    nochapter = "No chapters.",
-	    ontop = "Pin window",
-	    ontopdisable = "Unpin window",
+	    ontop = "Enable Picture-in-Picture",
+	    ontopdisable = "Exit Picture-in-Picture",
 	    loopenable = "Enable loop",
 	    loopdisable = "Disable loop",
 	    screenshot = "Screenshot",
@@ -254,6 +254,14 @@ local texts
 local function set_osc_texts()
     texts = language[user_opts.language] or language["en"]
 end
+
+local pip_state = {
+    active = false,
+    original_geometry = nil
+}
+local PIP_WIDTH = 480
+local PIP_HEIGHT = 270
+local SCREEN_PADDING = 20
 
 local thumbfast = {
 	width = 0,
@@ -1843,23 +1851,57 @@ local function osc_init()
             mp.set_property_native("loop-file", state.looping)
         end    
 
-    --tog_ontop
+    -- Picture in Picture
     ne = new_element("tog_ontop", "button")
-    ne.content = function () return mp.get_property("ontop") == "no" and icons.ontop_on or icons.ontop_off end
+    ne.content = function()
+        return mp.get_property("ontop") == "no" and icons.ontop_on or icons.ontop_off
+    end
     ne.tooltip_style = osc_styles.Tooltip
-    ne.tooltipF = function () return mp.get_property("ontop") == "no" and texts.ontop or texts.ontopdisable end
+    ne.tooltipF = function()
+        return pip_state.active and texts.ontopdisable or texts.ontop
+    end
     ne.visible = (osc_param.playresx >= 760 - outeroffset - (user_opts.showloop and 0 or 100) - (user_opts.showinfo and 0 or 100) - (user_opts.showfullscreen and 0 or 100))
-    ne.eventresponder["mbtn_left_up"] = function () 
-            mp.commandv("cycle", "ontop") 
+    ne.eventresponder["mbtn_left_up"] = function()
+        if not pip_state.active then
+            pip_state.original_geometry = mp.get_property("geometry")
+
+            mp.set_property("ontop", "yes")
             if state.initialborder == "yes" and not user_opts.ontopborder then
-                if mp.get_property("ontop") == "yes" then
-                    mp.commandv("set", "border", "no")
-                else
-                    mp.commandv("set", "border", "yes")
-                end
+                mp.set_property("border", "no")
             end
+
+            -- Calculate position for bottom-right corner and set geometry
+            local screen_w = mp.get_property_number("display-width")
+            local screen_h = mp.get_property_number("display-height")
+            if screen_w and screen_h then
+                local x = screen_w - PIP_WIDTH - SCREEN_PADDING
+                local y = screen_h - PIP_HEIGHT - SCREEN_PADDING
+                mp.set_property("geometry", string.format("%dx%d+%d+%d", PIP_WIDTH, PIP_HEIGHT, x, y))
+            else
+                -- Fallback for missing screen dimensions
+                mp.set_property("geometry", string.format("%dx%d", PIP_WIDTH, PIP_HEIGHT))
+            end
+
+            pip_state.active = true
+        else
+            -- Restore original geometry and disable PiP
+            if pip_state.original_geometry then
+                mp.set_property("geometry", pip_state.original_geometry)
+            end
+            mp.set_property("ontop", "no")
+            if state.initialborder == "yes" and not user_opts.ontopborder then
+                mp.set_property("border", "yes")
+            end
+
+            mp.set_property("geometry", "50%:50%")
+
+            pip_state.active = false
         end
-    ne.eventresponder["mbtn_right_up"] = function () mp.commandv("cycle", "ontop") end
+    end
+
+    ne.eventresponder["mbtn_right_up"] = function()
+        mp.commandv("cycle", "ontop")
+    end
 
     --screenshot
     ne = new_element("screenshot", "button")
