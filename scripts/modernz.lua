@@ -1,8 +1,14 @@
--- Samillion/ModernZ: https://github.com/Samillion/ModernZ
---- forked from zydezu/ModernX: https://github.com/zydezu/ModernX
----- forked from dexeonify: https://github.com/dexeonify/mpv-config/blob/main/scripts/modernx.lua
------ forked from cyl0: https://github.com/cyl0/ModernX
------- forked from maoiscat: https://github.com/maoiscat/mpv-osc-modern
+-- ModernZ (https://github.com/Samillion/ModernZ)
+--
+-- This script is a derivative of the original mpv-osc-modern by maoiscat 
+-- and subsequent forks:
+--   * cyl0/ModernX
+--   * dexeonify/ModernX
+--   * zydezu/ModernX
+--
+-- It is based on the official osc.lua from mpv, licensed under the 
+-- GNU Lesser General Public License v2.1 (LGPLv2.1). 
+-- Full license: https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html
 
 local assdraw = require 'mp.assdraw'
 local msg = require 'mp.msg'
