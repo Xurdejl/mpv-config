@@ -1694,6 +1694,7 @@ layouts["modern"] = function ()
     local remsec = mp.get_property_number("playtime-remaining", 0)
     local possec = mp.get_property_number("playback-time", 0)
     local dur = mp.get_property_number("duration", 0)
+    local is_time_over_hour = possec >= 3600 
 
     lo = add_layout("tc_left")
     lo.geometry = {x = 25, y = refY - 84, an = 7, w = 45 + (state.tc_ms and 30 or 0), h = 20}
@@ -1706,11 +1707,11 @@ layouts["modern"] = function ()
     -- Chapter Title (next to timestamp)
     if user_opts.show_chapter_title then
         lo = add_layout("separator")
-        lo.geometry = {x = 73 + (state.tc_ms and 32 or 0), y = refY - 84, an = 7, w = 30, h = 20}
+        lo.geometry = {x = 73 + (state.tc_ms and 32 or 0) + (is_time_over_hour and 20 or 0), y = refY - 84, an = 7, w = 30, h = 20}
         lo.style = osc_styles.time
 
         lo = add_layout("chapter_title")
-        lo.geometry = {x = 86 + (state.tc_ms and 32 or 0), y = refY - 84, an = 7, w = 200, h = 20}
+        lo.geometry = {x = 86 + (state.tc_ms and 32 or 0) + (is_time_over_hour and 20 or 0), y = refY - 84, an = 7, w = 200, h = 20}
         lo.style = osc_styles.chapter_title
     end
 
