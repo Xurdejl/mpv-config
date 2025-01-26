@@ -156,7 +156,8 @@ local user_opts = {
     tooltip_hints = true,                  -- enable text hints for info, loop, ontop, and screenshot buttons
 
     -- Progress bar settings 
-    seek_handle_size = 0.7,                -- size ratio of the seek handle (range: 0 ~ 1)
+    seek_handle_size = 0.7,                -- size ratio of the progress bar handle (range: 0 ~ 1)
+    volume_handle_size = 1,                -- size ratio of the volume bar handle (range: 0 ~ 1)
     seekrange = true,                      -- show seek range overlay
     seekrangealpha = 150,                  -- transparency of the seek range
     livemarkers = true,                    -- update chapter markers on the seekbar when duration changes
@@ -992,23 +993,31 @@ local function draw_seekbar_handle(element, elem_ass, override_alpha)
     if not pos then
         return 0, 0
     end
+
     local display_handle = user_opts.seek_handle_size > 0
     local elem_geo = element.layout.geometry
-    local rh = display_handle and (user_opts.seek_handle_size * elem_geo.h / 2) or 0 -- handle radius
+
+    -- Check if this is the volumebar and set a different handle size for it
+    local handle_size = user_opts.seek_handle_size
+    if element.name == "volumebar" then
+        handle_size = user_opts.volume_handle_size
+    end
+
+    local rh = display_handle and (handle_size * elem_geo.h / 2) or 0 -- handle radius
     local xp = get_slider_ele_pos_for(element, pos) -- handle position
     local handle_hovered = mouse_hit_coords(element.hitbox.x1 + xp - rh, element.hitbox.y1 + elem_geo.h / 2 - rh, element.hitbox.x1 + xp + rh, element.hitbox.y1 + elem_geo.h / 2 + rh) and element.enabled
 
     if display_handle then
-        -- Apply size hover_effect only if hovering over the handle
+        -- Apply size hover effect only if hovering over the handle
         if handle_hovered and user_opts.hover_effect_for_sliders then
             if contains(user_opts.hover_effect, "size") then
                     rh = rh * (user_opts.hover_button_size / 100)
             end
         end
 
-            ass_draw_cir_cw(elem_ass, xp, elem_geo.h / 2, rh)
+        ass_draw_cir_cw(elem_ass, xp, elem_geo.h / 2, rh)
 
-            if user_opts.hover_effect_for_sliders then
+        if user_opts.hover_effect_for_sliders then
             elem_ass:draw_stop()
             elem_ass:merge(element.style_ass)
             ass_append_alpha(elem_ass, element.layout.alpha, override_alpha or 0)
@@ -1815,13 +1824,13 @@ layouts["modern"] = function ()
         lo = new_element("volumebarbg", "box")
         lo.visible = (osc_param.playresx >= 1150 - outeroffset) and user_opts.volume_control
         lo = add_layout("volumebarbg")
-        lo.geometry = {x = 200 - (audio_track and 0 or 45) - (subtitle_track and 0 or 45) - (playlist_button and 0 or 45), y = refY - 35, an = 4, w = 55, h = 3}
+        lo.geometry = {x = 200 - (audio_track and 0 or 45) - (subtitle_track and 0 or 45) - (playlist_button and 0 or 45), y = refY - 35, an = 4, w = 55, h = 2.5}
         lo.layer = 13
         lo.alpha[1] = 128
         lo.style = user_opts.volumebar_match_seek_color and osc_styles.seekbar_bg or osc_styles.volumebar_bg
         
         lo = add_layout("volumebar")
-        lo.geometry = {x = 200 - (audio_track and 0 or 45) - (subtitle_track and 0 or 45) - (playlist_button and 0 or 45), y = refY - 35, an = 4, w = 55, h = 9}
+        lo.geometry = {x = 200 - (audio_track and 0 or 45) - (subtitle_track and 0 or 45) - (playlist_button and 0 or 45), y = refY - 35, an = 4, w = 55, h = 8.5}
         lo.style = user_opts.volumebar_match_seek_color and osc_styles.seekbar_fg or osc_styles.volumebar_fg
         lo.slider.gap = 3
         lo.slider.tooltip_style = osc_styles.tooltip
