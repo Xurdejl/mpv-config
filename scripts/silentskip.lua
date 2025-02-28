@@ -229,8 +229,11 @@ function handle_pause_change(name, value)
 end
 
 function reset_on_file_load()
-    mp.set_property("geometry", "")
-    
+    local is_fullscreen = mp.get_property_native("fullscreen")
+    if not is_fullscreen then
+        mp.set_property("geometry", "")
+    end
+
     if state.skip_active then
         show_message('Skip cancelled: New file loaded')
         restore_state(0)
