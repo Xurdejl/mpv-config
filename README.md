@@ -24,7 +24,7 @@
 
 - **[SmartCopyPaste](https://github.com/Eisa01/mpv-scripts?tab=readme-ov-file#smartcopypaste)** - Paste URLs and files directly from the clipboard into mpv.
 
-- **[skip-intro](https://github.com/rui-ddc/skip-intro)** - Effortlessly skip episode openings with a simple TAB press.
+- **[silentskip](./scripts/silentskip.lua)** - Effortlessly skip episode openings with a simple TAB press. *(Forked [skiptosilence.lua](https://github.com/dyphire/mpv-config/blob/master/scripts/skiptosilence.lua))*
 
 - **[thumbfast](https://github.com/po5/thumbfast)** - High-performance on-the-fly thumbnailer script for mpv.
 
