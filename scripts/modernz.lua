@@ -19,7 +19,7 @@ local utils = require "mp.utils"
 -- do not touch, change them in modernz.conf
 local user_opts = {
     -- Language and display
-    language = "en",                       -- set language (for available options, see: https://github.com/Samillion/ModernZ/blob/main/docs/TRANSLATIONS.md) 
+    language = "en",                       -- set language (for available options, see: https://github.com/Samillion/ModernZ/blob/main/docs/TRANSLATIONS.md)
     font = "mpv-osd-symbols",              -- font for the OSC (default: mpv-osd-symbols or the one set in mpv.conf)
 
     idlescreen = true,                     -- show mpv logo when idle
@@ -27,7 +27,7 @@ local user_opts = {
     showwindowed = true,                   -- show OSC when windowed
     showfullscreen = true,                 -- show OSC when fullscreen
     showonpause = true,                    -- show OSC when paused
-    keeponpause = true,                    -- disable OSC hide timeout when paused 
+    keeponpause = true,                    -- disable OSC hide timeout when paused
     greenandgrumpy = false,                -- disable Santa hat in December
 
     -- OSC behaviour and scaling
@@ -96,7 +96,7 @@ local user_opts = {
     info_button = false,                    -- show info button
     ontop_button = true,                   -- show window on top button
     screenshot_button = false,             -- show screenshot button
-    screenshot_flag = "subtitles",         -- flag for screenshot button: "subtitles", "video", "window", "each-frame" 
+    screenshot_flag = "subtitles",         -- flag for screenshot button: "subtitles", "video", "window", "each-frame"
                                            -- https://mpv.io/manual/master/#command-interface-screenshot-%3Cflags%3E
 
     download_button = true,                -- show download button on web videos (requires yt-dlp and ffmpeg)
@@ -104,6 +104,8 @@ local user_opts = {
 
     loop_button = false,                   -- show loop button
     speed_button = false,                  -- show speed control button
+    speed_button_click = 1,                -- speed change amount per click
+    speed_button_scroll = 0.25,            -- speed change amount on scroll
 
     loop_in_pause = true,                  -- enable looping by right-clicking pause
 
@@ -170,7 +172,7 @@ local user_opts = {
     nibbles_style = "bar",                 -- chapter nibble style. "triangle", "bar", or "single-bar"
 
     automatickeyframemode = true,          -- automatically set keyframes for the seekbar based on video length
-    automatickeyframelimit = 600,          -- videos longer than this (in seconds) will have keyframes on the seekbar 
+    automatickeyframelimit = 600,          -- videos longer than this (in seconds) will have keyframes on the seekbar
 
     persistentprogress = false,            -- always show a small progress line at the bottom of the screen
     persistentprogressheight = 17,         -- height of the persistent progress bar
@@ -255,6 +257,9 @@ local user_opts = {
     -- fullscreen button mouse actions
     fullscreen_mbtn_left_command = "cycle fullscreen",
     fullscreen_mbtn_right_command = "cycle window-maximized",
+
+    -- info button mouse actions
+    info_mbtn_left_command = "script-binding stats/display-page-1-toggle",
 }
 
 mp.observe_property("osc", "bool", function(name, value) if value == true then mp.set_property("osc", "no") end end)
@@ -2499,7 +2504,7 @@ local function osc_init()
     ne.tooltip_style = osc_styles.tooltip
     ne.tooltipF = user_opts.tooltip_hints and locale.stats_info or ""
     ne.visible = (osc_param.playresx >= 650 - outeroffset - (user_opts.fullscreen_button and 0 or 100))
-    ne.eventresponder["mbtn_left_up"] = function () mp.commandv("script-binding", "stats/display-page-1-toggle") end
+    ne.eventresponder["mbtn_left_up"] = command_callback(user_opts.info_mbtn_left_command)
 
     --tog_ontop
     ne = new_element("tog_ontop", "button")
@@ -2557,10 +2562,16 @@ local function osc_init()
     ne.visible = (osc_param.playresx >= 1150 - outeroffset - (user_opts.loop_button and 0 or 100) - (user_opts.screenshot_button and 0 or 100) - (user_opts.ontop_button and 0 or 100) - (user_opts.info_button and 0 or 100) - (user_opts.fullscreen_button and 0 or 100))
     ne.tooltip_style = osc_styles.tooltip
     ne.tooltipF = user_opts.tooltip_hints and locale.speed_control or ""
-    ne.eventresponder["mbtn_left_up"] = function () mp.commandv("osd-msg", "set", "speed", math.min(100, mp.get_property_number("speed") + 1)) end
+    ne.eventresponder["mbtn_left_up"] = function ()
+        mp.commandv("osd-msg", "set", "speed", math.min(100, mp.get_property_number("speed") + user_opts.speed_button_click))
+    end
     ne.eventresponder["mbtn_right_up"] = function () mp.commandv("osd-msg", "set", "speed", 1) end
-    ne.eventresponder["wheel_up_press"] = function () mp.commandv("osd-msg", "set", "speed", math.min(100, mp.get_property_number("speed") + 0.25)) end
-    ne.eventresponder["wheel_down_press"] = function () mp.commandv("osd-msg", "set", "speed", math.max(0.25, mp.get_property_number("speed") - 0.25)) end
+    ne.eventresponder["wheel_up_press"] = function ()
+        mp.commandv("osd-msg", "set", "speed", math.min(100, mp.get_property_number("speed") + user_opts.speed_button_scroll))
+    end
+    ne.eventresponder["wheel_down_press"] = function ()
+        mp.commandv("osd-msg", "set", "speed", math.max(0.25, mp.get_property_number("speed") - user_opts.speed_button_scroll))
+    end
 
     --download
     ne = new_element("download", "button")
@@ -2813,18 +2824,13 @@ local function osc_init()
     ne.content = function()
         local playback_time = mp.get_property_number("playback-time", 0)
 
-        -- force request_init() once to update time codes width hitbox
-        -- run once when less than hour, once again if hour or more
-        -- since request_init() is expensive, this is a measure to call it when needed only
+        -- call request_init() only when needed to update time code width
         if playback_time then
-            if playback_time >= 3600 and not state.playtime_hour_force_init then
+            local hour_or_more = playback_time >= 3600
+            if hour_or_more ~= state.playtime_hour_force_init then
                 request_init()
-                state.playtime_hour_force_init = true
-                state.playtime_nohour_force_init = false
-            elseif playback_time < 3600 and not state.playtime_nohour_force_init then
-                request_init()
-                state.playtime_hour_force_init = false
-                state.playtime_nohour_force_init = true
+                state.playtime_hour_force_init = hour_or_more
+                state.playtime_nohour_force_init = not hour_or_more
             end
         end
 
@@ -3347,6 +3353,9 @@ mp.register_event("file-loaded", function()
        else
             user_opts.seekbarkeyframes = false
        end
+    end
+    if user_opts.osc_on_start then
+        show_osc()
     end
 end)
 mp.register_event("start-file", request_init)
