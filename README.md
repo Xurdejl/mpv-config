@@ -22,8 +22,6 @@
 
 - **[evafast](https://github.com/po5/evafast)** - Fast-forwarding and seeking on a single key, with quality of life features like a slight slowdown when subtitles are shown.
 
-- **[SmartCopyPaste](https://github.com/Eisa01/mpv-scripts?tab=readme-ov-file#smartcopypaste)** - Paste URLs and files directly from the clipboard into mpv.
-
 - **[silentskip](./scripts/silentskip.lua)** - Effortlessly skip episode openings with a simple TAB press. *(Forked [skiptosilence.lua](https://github.com/dyphire/mpv-config/blob/master/scripts/skiptosilence.lua))*
 
 - **[thumbfast](https://github.com/po5/thumbfast)** - High-performance on-the-fly thumbnailer script for mpv.
