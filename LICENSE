@@ -28,9 +28,6 @@ under terms other than the MIT license. These remain under their original licens
 1. LGPL-2.1 license (https://www.gnu.org/licenses/lgpl-2.1.html)
    ModernZ.lua
 
-2. BSD-2-Clause license (https://opensource.org/license/bsd-2-clause)
-   SmartCopyPaste.lua
-
 3. MPL-2.0 license (https://www.mozilla.org/en-US/MPL/2.0/)
    ThumbFast.lua
 
@@ -43,5 +40,4 @@ under terms other than the MIT license. These remain under their original licens
 The following are also included under the MIT License, but they are not 
 attributed to this work:
    fluent-system-icons.ttf
-   skip-intro.lua
    webm.lua
