@@ -283,10 +283,10 @@ local icon_theme = {
     ["fluent"] = {
         iconfont = "fluent-system-icons",
         window = {
-            minimize = "\238\132\146",
-            maximize = "\238\132\147",
-            unmaximize = "\238\132\148",
-            close = "\238\132\149",
+            minimize = "\238\175\143",
+            maximize = "\239\148\179",
+            unmaximize = "\238\174\149",
+            close = "\239\141\168",
         },
         audio = "\238\175\139",
         subtitle = "\238\175\141",
@@ -513,7 +513,7 @@ local function set_osc_styles()
     osc_styles = {
         osc_fade_bg = "{\\blur" .. user_opts.fade_blur_strength .. "\\bord" .. user_opts.fade_alpha .. "\\1c&H0&\\3c&H" .. osc_color_convert(user_opts.osc_color) .. "&}",
         window_fade_bg = "{\\blur" .. user_opts.window_fade_blur_strength .. "\\bord" .. user_opts.window_fade_alpha .. "\\1c&H0&\\3c&H" .. osc_color_convert(user_opts.osc_color) .. "&}",
-        window_control = "{\\blur1\\bord0.5\\1c&H" .. osc_color_convert(user_opts.window_controls_color) .. "&\\3c&H0&\\fs18\\fnmpv-osd-symbols}",
+        window_control = "{\\blur1\\bord0.5\\1c&H" .. osc_color_convert(user_opts.window_controls_color) .. "&\\3c&H0&\\fs16\\fn" .. iconfont .. "}",
         window_title = "{\\blur1\\bord0.5\\1c&H" .. osc_color_convert(user_opts.window_title_color) .. "&\\3c&H0&\\fs22\\b1\\q2\\fn" .. user_opts.font .. "}",
         title = "{\\blur1\\bord0.5\\1c&H" .. osc_color_convert(user_opts.title_color) .. "&\\3c&H0&\\fs".. user_opts.title_font_size .."\\q2\\fn" .. user_opts.font .. "}",
         chapter_title = "{\\blur0\\bord0\\1c&H" .. osc_color_convert(user_opts.chapter_title_color) .. "&\\3c&H0&\\fs" .. user_opts.chapter_title_font_size .. "\\fn" .. user_opts.font .. "}",
@@ -1648,7 +1648,7 @@ local function window_controls()
         y = 50,
         an = 1,
         w = osc_param.playresx,
-        h = 55,
+        h = 70,
     }
 
     local lo
@@ -1658,9 +1658,9 @@ local function window_controls()
     local titlebox_left = wc_geo.x
     local titlebox_right = wc_geo.w - controlbox_w
     local button_y = wc_geo.y - (wc_geo.h / 2)
-    local first_geo = {x = controlbox_left + 35, y = button_y, an = 5, w = 50, h = wc_geo.h}
-    local second_geo = {x = controlbox_left + 80, y = button_y, an = 5, w = 49, h = wc_geo.h}
-    local third_geo = {x = controlbox_left + 125, y = button_y, an = 5, w = 50, h = wc_geo.h}
+    local first_geo = {x = controlbox_left + 54, y = button_y, an = 5, w = 50, h = wc_geo.h}
+    local second_geo = {x = controlbox_left + 92, y = button_y, an = 5, w = 50, h = wc_geo.h}
+    local third_geo = {x = controlbox_left + 130, y = button_y, an = 5, w = 50, h = wc_geo.h}
 
     -- Window controls
     if user_opts.window_controls then
@@ -1769,7 +1769,7 @@ layouts["modern"] = function ()
     new_element("seekbarbg", "box")
     lo = add_layout("seekbarbg")
     local seekbar_bg_h = 3
-    lo.geometry = {x = refX, y = refY - 72, an = 5, w = osc_geo.w - 50, h = seekbar_bg_h}
+    lo.geometry = {x = refX, y = refY - 72, an = 5, w = osc_geo.w - 40, h = seekbar_bg_h}
     lo.layer = 13
     lo.style = osc_styles.seekbar_bg
     lo.alpha[1] = 152
@@ -1777,7 +1777,7 @@ layouts["modern"] = function ()
 
     lo = add_layout("seekbar")
     local seekbar_h = 17
-    lo.geometry = {x = refX, y = refY - 72, an = 5, w = osc_geo.w - 50, h = seekbar_h}
+    lo.geometry = {x = refX, y = refY - 72, an = 5, w = osc_geo.w - 40, h = seekbar_h}
     lo.layer = 51
     lo.style = osc_styles.seekbar_fg
     lo.slider.gap = (seekbar_h - seekbar_bg_h) / 2.0
@@ -1810,7 +1810,7 @@ layouts["modern"] = function ()
     local outeroffset = (chapter_skip_buttons and 0 or 100) + (jump_buttons and 0 or 100)
 
     -- OSC title
-    geo = {x = 25, y = refY - (chapter_index and user_opts.title_with_chapter_height or user_opts.title_height), an = 1, w = osc_geo.w - 50 - (loop_button and 45 or 0) - (speed_button and 45 or 0), h = user_opts.title_font_size}
+    geo = {x = 20, y = refY - (chapter_index and user_opts.title_with_chapter_height or user_opts.title_height), an = 1, w = osc_geo.w - 50 - (loop_button and 45 or 0) - (speed_button and 45 or 0), h = user_opts.title_font_size}
     lo = add_layout("title")
     lo.geometry = geo
     lo.style = string.format("%s{\\clip(0,%f,%f,%f)}", osc_styles.title, geo.y - geo.h, geo.x + geo.w, geo.y + geo.h)
@@ -1819,7 +1819,7 @@ layouts["modern"] = function ()
     -- Chapter title (above seekbar)
     if user_opts.show_chapter_title then
         lo = add_layout("chapter_title")
-        lo.geometry = {x = 26, y = refY - user_opts.chapter_title_height, an = 1, w = osc_geo.w / 2, h = user_opts.chapter_title_font_size}
+        lo.geometry = {x = 20, y = refY - user_opts.chapter_title_height, an = 1, w = osc_geo.w / 2, h = user_opts.chapter_title_font_size}
         lo.style = string.format("%s{\\clip(0,%f,%f,%f)}", osc_styles.chapter_title, geo.y - geo.h, geo.x + geo.w, geo.y + geo.h)
     end
 
