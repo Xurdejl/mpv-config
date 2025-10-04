@@ -1,10 +1,10 @@
-<h1 align="center">❄️📖✨ MPV's madōsho ✨📖❄️</h1> 
+<h1 align="center">~ 🌑 𝓜𝓟𝓥 𝓒𝓸𝓭𝓮𝔁 🌑 ~</h1> 
 
-<h3 align="center"><samp>&gt; Welcome to my MPV's grimoire, a collection of settings for an optimized anime viewing experience!</samp></h3>
+<h3 align="center"><samp>&gt;  Just a set of scripts and configs, because default settings are boring.</samp></h3>
 
 <p align="center"><samp>「 These are my personal opinionated MPV settings. 」</samp></p>
 
-![img](https://i.imgur.com/fU1TQJD.png)
+![img](https://i.imgur.com/76eEh9x.png)
 
 ## 🌨️ Shaders
 
@@ -18,17 +18,17 @@
 
 ## 🔮 Scripts
 
-- **[ModernZ](https://github.com/Samillion/ModernZ)** - A sleek and modern OSC for mpv designed to enhance functionality by adding more features, all while preserving the core standards of mpv's OSC.
+- **[uosc](https://github.com/tomasklaen/uosc)** - Feature-rich minimalist proximity-based UI for MPV player.
 
 - **[evafast](https://github.com/po5/evafast)** - Fast-forwarding and seeking on a single key, with quality of life features like a slight slowdown when subtitles are shown.
 
-- **[silentskip](./scripts/silentskip.lua)** - Effortlessly skip episode openings with a simple TAB press. *(Forked [skiptosilence.lua](https://github.com/dyphire/mpv-config/blob/master/scripts/skiptosilence.lua))*
+- **[silentskip](./scripts/silentskip.lua)** - Effortlessly skip episode openings with a simple TAB press. *(Forked from [skiptosilence.lua](https://github.com/dyphire/mpv-config/blob/master/scripts/skiptosilence.lua))*
 
 - **[thumbfast](https://github.com/po5/thumbfast)** - High-performance on-the-fly thumbnailer script for mpv.
 
 - **[webm](https://github.com/ekisu/mpv-webm)** - Quickly create video clips.
 
-## ❤️ References
+## 💜 References
 
 - [MPV Manual](https://mpv.io/manual/stable/)
 - [I am Scum's Guide](https://iamscum.wordpress.com/guides/videoplayback-guide/mpv-conf/)
