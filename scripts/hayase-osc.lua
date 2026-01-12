@@ -1,5 +1,5 @@
 --[[
-hayase-osc.lua 
+hayase-osc.lua
 https://github.com/Xurdejl/mpv-config
 
 Custom OSC for mpv inspired by hayase player UI
@@ -41,7 +41,7 @@ local user_opts = {
     window_top_bar = "auto",               -- show OSC window top bar: "auto", "yes", or "no" (borderless/fullscreen)
     window_title = false,                  -- show window title in borderless/fullscreen mode
     window_controls = true,                -- show window controls (close, minimize, maximize) in borderless/fullscreen
-    windowcontrols_title = "${media-title}", -- same as title but for windowcontrols   
+    windowcontrols_title = "${media-title}", -- same as title but for windowcontrols
 
     raise_subtitles = true,                -- raise subtitles above the OSC when shown
     raise_subtitle_amount = 125,           -- amount by which subtitles are raised when the OSC is shown (in pixels)
@@ -325,6 +325,7 @@ end
 local state = {
     showtime = nil,                         -- time of last invocation (last mouse move)
     touchtime = nil,                        -- time of last invocation (last touch event)
+    touchpoints = {},                       -- current touch points
     osc_visible = false,
     anistart = nil,                         -- time when the animation started
     anitype = nil,                          -- current type of animation
@@ -338,6 +339,7 @@ local state = {
     initREQ = false,                        -- is a re-init request pending?
     marginsREQ = false,                     -- is a margins update pending?
     last_mouseX = nil, last_mouseY = nil,   -- last mouse position, to detect significant mouse movement
+    last_touchX = -1, last_touchY = -1,     -- last touch position
     mouse_in_window = false,
     fullscreen = false,
     tick_timer = nil,
@@ -406,7 +408,7 @@ local function format_time_custom(seconds, with_ms)
     local h = math.floor(seconds / 3600)
     local m = math.floor((seconds % 3600) / 60)
     local s = math.floor(seconds % 60)
-    
+
     local time_str
     if h > 0 then
         time_str = string.format("%d:%02d:%02d", h, m, s)
@@ -459,9 +461,19 @@ local function get_virt_scale_factor()
     return osc_param.playresx / w, osc_param.playresy / h
 end
 
+local function recently_touched()
+    if state.touchtime == nil then
+        return false
+    end
+    return state.touchtime + 1 >= mp.get_time()
+end
+
 -- return mouse position in virtual ASS coordinates (playresx/y)
 local function get_virt_mouse_pos()
-    if state.mouse_in_window then
+    if recently_touched() then
+        local sx, sy = get_virt_scale_factor()
+        return state.last_touchX * sx, state.last_touchY * sy
+    elseif state.mouse_in_window then
         local sx, sy = get_virt_scale_factor()
         local x, y = mp.get_mouse_pos()
         return x * sx, y * sy
@@ -1295,7 +1307,7 @@ local function window_controls()
         lo.geometry = third_geo
         lo.style = osc_styles.window_control
         lo.button.hoverstyle = "{\\c&2311E8&\\3c&H000000&}"
-        
+
         -- Minimize: 🗕
         lo = add_layout("minimize")
         lo.geometry = first_geo
@@ -2215,9 +2227,17 @@ local function mouse_leave()
     state.mouse_in_window = false
 end
 
-local function handle_touch()
-    --remember last time of invocation (touch event)
-    state.touchtime = mp.get_time()
+local function handle_touch(_, touchpoints)
+    --remember last touch points
+    if touchpoints then
+        state.touchpoints = touchpoints
+        if #touchpoints > 0 then
+            --remember last time of invocation (touch event)
+            state.touchtime = mp.get_time()
+            state.last_touchX = touchpoints[1].x
+            state.last_touchY = touchpoints[1].y
+        end
+    end
 end
 
 --
@@ -2443,7 +2463,7 @@ local function render()
                 if state.osc_visible then
                     mp.enable_key_bindings("window-controls-title", "allow-vo-dragging")
                 else
-                    mp.disable_key_bindings("window-controls-title", "allow-vo-dragging")
+                    mp.disable_key_bindings("window-controls-title")
                 end
                 state.windowcontrols_title = state.osc_visible
             end
@@ -2637,7 +2657,7 @@ mp.observe_property("seeking", "native", function(_, seeking)
     end
 
     if seeking and user_opts.osc_on_seek then
-        show_osc() 
+        show_osc()
     end
 end)
 mp.observe_property("fullscreen", "bool", function(_, val)
