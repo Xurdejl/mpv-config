@@ -4,7 +4,7 @@
 
 <p align="center"><samp>「 These are my personal opinionated MPV settings. 」</samp></p>
 
-![img](https://i.imgur.com/y7DEvAz.png)
+![img](https://i.imgur.com/RGkqkXa.png)
 
 ## 🌨️ Shaders
 
