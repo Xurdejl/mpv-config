@@ -45,7 +45,7 @@ local user_opts = {
     window_controls = true,                -- show window controls (close, minimize, maximize) in borderless/fullscreen
     windowcontrols_title = "${media-title}", -- same as title but for windowcontrols
 
-    raise_subtitles = true,                -- raise subtitles above the OSC when shown
+    raise_subtitles = false,               -- raise subtitles above the OSC when shown
     raise_subtitle_amount = 125,           -- amount by which subtitles are raised when the OSC is shown (in pixels)
 
     speed_button = false,                  -- show speed control button
@@ -76,12 +76,12 @@ local user_opts = {
     title_color = "#FFFFFF",               -- color of the title (above seekbar)
     chapter_title_color = "#D9D9D9",       -- color of the chapter title (above seekbar)
     buttons_color = "#FFFFFF",             -- color of the play/pause button
-    seekbarfg_color = "#1D96F5",           -- color of the seekbar progress and handle
+    seekbarfg_color = "#FFFFFF",           -- color of the seekbar progress and handle
     seekbarbg_color = "#D9D9D9",           -- color of the remaining seekbar
     volumebar_match_seek_color = false,      -- match volume bar color with seekbar color
     held_element_color = "#999999",        -- color of the element when held down (pressed)
     hover_effect_color = "#E9F2FA",        -- color of a hovered button when hover_effect includes "color"
-    thumbnail_border_color = "#000000",    -- color of the border for thumbnails (with thumbfast)
+    thumbnail_border_color = "#FFFFFF",    -- color of the border for thumbnails (with thumbfast)
     thumbnail_border_outline = "#FFFFFF",  -- color of the border outline for thumbnails
 
     visibility = "auto",                   -- only used at init to set visibility_mode(...)
@@ -307,7 +307,8 @@ local function set_osc_styles()
         seekbar_fg = "{\\blur1\\bord1\\1c&H" .. osc_color_convert(user_opts.seekbarfg_color) .. "&}",
         thumbnail = "{\\blur0\\bord1\\1c&H" .. osc_color_convert(user_opts.thumbnail_border_color) .. "&\\3c&H" .. osc_color_convert(user_opts.thumbnail_border_outline) .. "&\\3a&HE6&}",
         time = "{\\blur0\\bord0\\1c&H" .. osc_color_convert(user_opts.title_color) .. "&\\3c&H0&\\fs" .. user_opts.font_size_md .. "}",
-        tooltip = "{\\blur1\\bord0.5\\1c&HFFFFFF&\\3c&H0&\\fs" .. user_opts.font_size_md .. "}",
+        tooltip = "{\\blur0\\bord0\\1c&HFFFFFF&\\3c&H0&\\fs" .. user_opts.font_size_md .. "}",
+        tooltip_bg = "{\\blur0\\bord0\\1c&H000000&\\1a&H80&}",
         volumebar_bg = "{\\blur0\\bord0\\1c&H999999&}",
         volumebar_fg = "{\\blur1\\bord1\\1c&H" .. osc_color_convert(user_opts.buttons_color) .. "&}",
         buttons = "{\\blur0\\bord0\\1c&H" .. osc_color_convert(user_opts.buttons_color) .. "&\\3c&HFFFFFF&\\fs" .. buttons_size .. "\\fn" .. icon_font .. "}",
@@ -1039,11 +1040,15 @@ local function render_elements(master_ass, osc_vis, wc_vis)
                         local sliderpos = get_slider_value(element)
                         local tooltiplabel = element.slider.tooltipF(sliderpos)
                         local an = slider_lo.tooltip_an
-                        local ty = element.hitbox.y1
+                        local ty = element.hitbox.y1 - 8
                         if an ~= 2 then ty = ty + elem_geo.h / 2 end
                         local tx = get_virt_mouse_pos()
                         local osd_w = mp.get_property_number("osd-width")
                         local r_w, r_h = get_virt_scale_factor()
+
+                        local pad_h, pad_v = 4, 4
+                        local fs = user_opts.font_size_md
+                        local spacing = 5
 
                         local tooltip_width = estimate_text_width(tooltiplabel, slider_lo.tooltip_style)
 
@@ -1078,17 +1083,10 @@ local function render_elements(master_ass, osc_vis, wc_vis)
                             state.sliderpos = sliderpos
                         end
 
+                        local chapter_tooltip_y = nil
+
                         if thumbfast.disabled then
-                            if chapter_text and osd_w and r_w > 0 then
-                                local titleY = ty - (user_opts.font_size_md * 1.3)
-                                elem_ass:new_event()
-                                elem_ass:pos(tx, titleY)
-                                elem_ass:an(2)
-                                elem_ass:append(slider_lo.tooltip_style)
-                                ass_append_alpha(elem_ass, slider_lo.alpha, 0)
-                                elem_ass:append(chapter_text)
-                            end
-                        -- thumbfast
+                            chapter_tooltip_y = ty - fs - 2 * pad_v - spacing
                         elseif element.thumbnailable and not thumbfast.disabled then
                             if osd_w then
                                 local hover_sec = 0
@@ -1096,42 +1094,67 @@ local function render_elements(master_ass, osc_vis, wc_vis)
                                 if hover_dur then hover_sec = hover_dur * sliderpos / 100 end
                                 local thumbPad = 2
                                 local thumbMarginX = 18 / r_w
-                                local thumbMarginY = user_opts.font_size_md + thumbPad + 2 / r_h
-                                local thumbX = math.min(osd_w - thumbfast.width - thumbMarginX, math.max(thumbMarginX, tx / r_w - thumbfast.width / 2))
-                                local thumbY = (ty - thumbMarginY) / r_h - thumbfast.height
 
+                                local thumbX = math.min(osd_w - thumbfast.width - thumbMarginX, math.max(thumbMarginX, tx / r_w - thumbfast.width / 2))
                                 thumbX = math.floor(thumbX + 0.5)
-                                thumbY = math.floor(thumbY + 0.5)
+
+                                -- symmetric spacing math
+                                local thumb_border_bottom = ty - fs - pad_v - spacing
+                                local thumb_image_bottom = thumb_border_bottom - (thumbPad * r_h)
+                                local thumb_image_top = thumb_image_bottom - (thumbfast.height * r_h)
+                                local thumbY = math.floor(thumb_image_top / r_h + 0.5)
 
                                 if state.anitype == nil then
                                     elem_ass:new_event()
                                     elem_ass:append("{\\rDefault}")
-                                    elem_ass:pos(thumbX * r_w, ty - thumbMarginY - thumbfast.height * r_h)
+                                    elem_ass:pos(thumbX * r_w, thumb_image_top)
                                     elem_ass:an(7)
                                     elem_ass:append(osc_styles.thumbnail)
                                     elem_ass:draw_start()
                                     elem_ass:round_rect_cw(-thumbPad * r_w, -thumbPad * r_h, (thumbfast.width + thumbPad) * r_w, (thumbfast.height + thumbPad) * r_h, 4)
                                     elem_ass:draw_stop()
 
-                                    -- force tooltip to be centered on the thumb, even at far left/right of screen
-                                    tx = (thumbX + thumbfast.width / 2) * r_w
-                                    an = 2
-
                                     mp.commandv("script-message-to", "thumbfast", "thumb", hover_sec, thumbX, thumbY)
                                 end
 
+                                -- force tooltip to be centered on the thumb, even at far left/right of screen
+                                tx = (thumbX + thumbfast.width / 2) * r_w
                                 an = 2
-                                if chapter_text then
-                                    elem_ass:new_event()
-                                    elem_ass:pos(tx, thumbY * r_h - user_opts.font_size_md / 2)
-                                    elem_ass:an(an)
-                                    elem_ass:append(slider_lo.tooltip_style)
-                                    ass_append_alpha(elem_ass, slider_lo.alpha, 0)
-                                    elem_ass:append(chapter_text)
-                                end
+
+                                local thumb_border_top = thumb_image_top - (thumbPad * r_h)
+                                chapter_tooltip_y = thumb_border_top - spacing - pad_v
                             end
                         end
 
+                        -- chapter tooltip
+                        if chapter_text and osd_w and r_w > 0 and chapter_tooltip_y then
+                            elem_ass:new_event()
+                            elem_ass:pos(tx - chapter_width / 2 - pad_h, chapter_tooltip_y - fs - pad_v)
+                            elem_ass:an(7)
+                            elem_ass:append(osc_styles.tooltip_bg)
+                            elem_ass:draw_start()
+                            elem_ass:round_rect_cw(0, 0, chapter_width + 2 * pad_h, fs + 2 * pad_v, 4)
+                            elem_ass:draw_stop()
+                            elem_ass:new_event()
+                            elem_ass:pos(tx, chapter_tooltip_y)
+                            elem_ass:an(2)
+                            elem_ass:append(slider_lo.tooltip_style)
+                            ass_append_alpha(elem_ass, slider_lo.alpha, 0)
+                            elem_ass:append(chapter_text)
+                        end
+
+                        -- tooltip label background box
+                        if element.name == "seekbar" then
+                            elem_ass:new_event()
+                            elem_ass:pos(tx - tooltip_width / 2 - pad_h, ty - fs - pad_v)
+                            elem_ass:an(7)
+                            elem_ass:append(osc_styles.tooltip_bg)
+                            elem_ass:draw_start()
+                            elem_ass:round_rect_cw(0, 0, tooltip_width + 2 * pad_h, fs + 2 * pad_v, 4)
+                            elem_ass:draw_stop()
+                        end
+
+                        -- tooltip label
                         elem_ass:new_event()
                         elem_ass:pos(tx, ty)
                         elem_ass:an(an)
