@@ -180,35 +180,34 @@ local icons = {
 local language = {
     ["en"] = {
         idle = "Drop files or URLs to play here",
-        na = "Not available",
-        video = "Video",
+        na = "N/A",
         audio = "Audio",
         subtitle = "Subtitle",
-        no_subs = "No subtitles available",
-        no_audio = "No audio tracks available",
+        no_subs = "No subtitles",
+        no_audio = "No audio tracks",
         playlist = "Playlist",
-        no_playlist = "Playlist is empty",
+        no_playlist = "Empty playlist",
         chapter = "Chapter",
-        ontop = "Pin Window",
-        ontop_disable = "Unpin Window",
-        loop_enable = "Loop",
-        loop_disable = "Disable Loop",
-        speed_control = "Speed",
+        ontop = "Pin on top",
+        ontop_disable = "Unpin",
+        loop_enable = "Repeat file on",
+        loop_disable = "Repeat file off",
+        speed_control = "Playback speed",
         cache = "Cache",
         buffering = "Buffering",
         menu = "Menu",
         replay = "Replay",
         play = "Play",
         pause = "Pause",
-        fullscreen_enter = "Fullscreen",
-        fullscreen_exit = "Exit fullscreen",
+        fullscreen_enter = "Full screen",
+        fullscreen_exit = "Exit full screen",
         playlist_next = "Next",
         playlist_prev = "Previous",
     },
 }
 
 -- locale JSON file handler
-function get_locale_from_json(path)
+local function get_locale_from_json(path)
     local expand_path = mp.command_native({'expand-path', path})
 
     local file_info = utils.file_info(expand_path)
@@ -2036,7 +2035,7 @@ local function osc_init()
         return user_opts.cache_info_speed and cache_info .. "\\N" .. cache_info_speed or cache_info
     end
     ne.tooltip_style = osc_styles.tooltip
-    ne.tooltipF = (user_opts.tooltip_hints and cache_enabled()) and locale.cache or ""
+    ne.tooltipF = cache_enabled() and locale.cache or ""
     ne.eventresponder["mbtn_left_up"] = function() mp.command("script-binding stats/display-page-3") end
 
     --seekbar
@@ -2969,9 +2968,8 @@ local function validate_user_opts()
 
     local colors = {
         user_opts.background_color, user_opts.seekbarfg_color, user_opts.seekbarbg_color,
-        user_opts.title_color, user_opts.playpause_color, user_opts.held_element_color,
-        user_opts.thumbnail_border_color, user_opts.chapter_title_color, user_opts.hover_effect_color,
-        user_opts.thumbnail_border_outline
+        user_opts.title_color, user_opts.held_element_color, user_opts.thumbnail_border_color,
+        user_opts.chapter_title_color, user_opts.hover_effect_color, user_opts.thumbnail_border_outline
     }
 
     for _, color in pairs(colors) do
