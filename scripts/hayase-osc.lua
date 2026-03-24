@@ -412,7 +412,7 @@ local function observe_cached(property, callback)
     end)
 end
 
-local function format_time_custom(seconds, with_ms)
+local function format_time(seconds)
     if seconds == nil then return "" end
     local h = math.floor(seconds / 3600)
     local m = math.floor((seconds % 3600) / 60)
@@ -425,7 +425,7 @@ local function format_time_custom(seconds, with_ms)
         time_str = string.format("%d:%02d", m, s)
     end
 
-    if with_ms then
+    if state.tc_ms then
         local ms = math.floor((seconds % 1) * 1000)
         time_str = time_str .. string.format(".%03d", ms)
     end
@@ -2042,7 +2042,6 @@ local function osc_init()
     ne = new_element("seekbar", "slider")
     ne.enabled = mp.get_property("percent-pos") ~= nil
     ne.thumbnailable = true
-    state.slider_element = ne.enabled and ne or nil  -- used for forced_title
     ne.slider.markerF = function ()
         local duration = mp.get_property_number("duration")
         if duration and duration > 0 then
@@ -2064,7 +2063,7 @@ local function osc_init()
         state.touchingprogressbar = true
         local duration = mp.get_property_number("duration")
         if duration ~= nil and pos ~= nil then
-            return format_time_custom(duration * (pos / 100))
+            return format_time(duration * (pos / 100))
         else
             return ""
         end
@@ -2075,11 +2074,9 @@ local function osc_init()
         -- mouse move events may pile up during seeking and may still get
         -- sent when the user is done seeking, so we need to throw away
         -- identical seeks
-        if not state.playing_and_seeking then
-            state.playing_and_seeking = true
-            if not element.state.was_paused then
-                mp.commandv("cycle", "pause")
-            end
+        state.playing_and_seeking = true
+        if not mp.get_property_bool("pause") then
+            mp.commandv("cycle", "pause")
         end
         local seekto = get_slider_value(element)
         if element.state.lastseek == nil or
@@ -2132,6 +2129,15 @@ local function osc_init()
     end
     ne.eventresponder["reset"] = function (element)
         element.state.lastseek = nil
+        if element.state.mbtnleft then
+            element.state.mbtnleft = false
+            if state.playing_and_seeking then
+                if not element.state.was_paused and not mp.get_property_bool("eof-reached") then
+                    mp.commandv("cycle", "pause")
+                end
+                state.playing_and_seeking = false
+            end
+        end
     end
     if user_opts.scrollcontrols then
         ne.eventresponder["wheel_up_press"] = function () mp.commandv("seek", 10) end
@@ -2174,11 +2180,6 @@ local function osc_init()
             return nranges
         end
         return nil
-    end
-
-    -- Helper function to format time
-        local function format_time(seconds)
-        return format_time_custom(seconds, state.tc_ms)
     end
 
     -- Time codes display
