@@ -64,9 +64,9 @@ local user_opts = {
     seekbarkeyframes = false,              -- use keyframes when dragging the seekbar
     automatickeyframemode = true,          -- automatically set keyframes for the seekbar based on video length
     automatickeyframelimit = 600,          -- videos longer than this (in seconds) will have keyframes on the seekbar
-    persistentprogress = false,            -- always show a small progress line at the bottom of the screen
-    persistentprogressheight = 18,         -- height of the persistent progress bar
-    persistentbuffer = false,              -- show buffer status on web videos in the persistent progress line
+    persistent_progress = false,           -- always show a small progress line at the bottom of the screen
+    persistent_progress_height = 18,       -- height of the persistent progress bar
+    persistent_buffer = false,             -- show cached buffer status in the persistent progress line
 
     font_size_lg = 24,                     -- font size for the title (above seekbar)
     font_size_md = 18,                     -- font size of the time codes, tootlips, and chapter title
@@ -371,7 +371,8 @@ local state = {
     initialborder = mp.get_property("border"),
     playtime_hour_force_init = false,       -- used to force request_init() once
     playing_and_seeking = false,
-    persistent_progress_toggle = user_opts.persistentprogress,
+    persistent_seekbar_element = nil,
+    persistent_progress_toggle = user_opts.persistent_progress,
     user_subpos = mp.get_property_number("sub-pos") or 100,
     osc_adjusted_subpos = nil
 }
@@ -1015,7 +1016,7 @@ local function render_elements(master_ass, osc_vis, wc_vis)
         end
 
         if element.type == "slider" then
-            if element.name ~= "persistentseekbar" then
+            if element.name ~= "persistent_seekbar" then
                 local slider_lo = element.layout.slider
                 local elem_geo = element.layout.geometry
                 local s_min = element.slider.min.value
@@ -1260,30 +1261,27 @@ local function render_elements(master_ass, osc_vis, wc_vis)
     for n = 1, #elements do render_element(n) end
 end
 
-local function render_persistentprogressbar(master_ass)
-    for n=1, #elements do
-        local element = elements[n]
-        if element.name == "persistentseekbar" then
-            local style_ass = assdraw.ass_new()
-            style_ass:merge(element.style_ass)
-            if state.animation or not state.osc_visible then
-                ass_append_alpha(style_ass, element.layout.alpha, 0, true)
+local function render_persistent_progress(master_ass)
+    local element = state.persistent_seekbar_element
+    if not element then return end
+    local style_ass = assdraw.ass_new()
+    style_ass:merge(element.style_ass)
+    if state.animation or not state.osc_visible then
+        ass_append_alpha(style_ass, element.layout.alpha, 0, true)
 
-                local elem_ass = assdraw.ass_new()
-                elem_ass:merge(style_ass)
-                elem_ass:merge(element.static_ass)
+        local elem_ass = assdraw.ass_new()
+        elem_ass:merge(style_ass)
+        elem_ass:merge(element.static_ass)
 
-                -- draw pos marker
-                draw_seekbar_progress(element, elem_ass)
+        -- draw pos marker
+        draw_seekbar_progress(element, elem_ass)
 
-                if user_opts.persistentbuffer then
-                    draw_seekbar_ranges(element, elem_ass, nil, nil)
-                end
-
-                elem_ass:draw_stop()
-                master_ass:merge(elem_ass)
-            end
+        if user_opts.persistent_buffer then
+            draw_seekbar_ranges(element, elem_ass, nil, nil)
         end
+
+        elem_ass:draw_stop()
+        master_ass:merge(elem_ass)
     end
 end
 
@@ -1482,9 +1480,9 @@ layouts["default"] = function ()
     lo.slider.tooltip_style = osc_styles.tooltip
     lo.slider.tooltip_an = 2
 
-    if user_opts.persistentprogress or state.persistent_progress_toggle then
-        lo = add_layout("persistentseekbar")
-        lo.geometry = {x = refX, y = refY, an = 5, w = osc_geo.w, h = user_opts.persistentprogressheight}
+    if user_opts.persistent_progress or state.persistent_progress_toggle then
+        lo = add_layout("persistent_seekbar")
+        lo.geometry = {x = refX, y = refY, an = 5, w = osc_geo.w, h = user_opts.persistent_progress_height}
         lo.style = osc_styles.seekbar_fg
         lo.slider.gap = (seekbar_h - seekbar_bg_h) / 2.0
         lo.slider.tooltip_an = 0
@@ -2145,7 +2143,7 @@ local function osc_init()
     end
 
     --persistent seekbar
-    ne = new_element("persistentseekbar", "slider")
+    ne = new_element("persistent_seekbar", "slider")
     ne.enabled = mp.get_property("percent-pos") ~= nil
     ne.slider.markerF = function () return {} end
     ne.slider.posF = function ()
@@ -2154,7 +2152,7 @@ local function osc_init()
     end
     ne.slider.tooltipF = function() return "" end
     ne.slider.seekRangesF = function()
-        if user_opts.persistentbuffer then
+        if user_opts.persistent_buffer then
             if not user_opts.seekrange then
                 return nil
             end
@@ -2224,8 +2222,12 @@ local function osc_init()
         window_controls()
     end
 
+    -- cache persistent seekbar element
+    state.persistent_seekbar_element = elements["persistent_seekbar"]
+
     --do something with the elements
     prepare_elements()
+
     update_margins()
 end
 
@@ -2560,8 +2562,8 @@ local function render()
         render_elements(ass)
     end
 
-    if user_opts.persistentprogress or state.persistent_progress_toggle then
-        render_persistentprogressbar(ass)
+    if user_opts.persistent_progress or state.persistent_progress_toggle then
+        render_persistent_progress(ass)
     end
 
     -- submit
@@ -2931,8 +2933,8 @@ mp.register_script_message("osc-hide", function()
 end)
 mp.add_key_binding(nil, "visibility", function() visibility_mode("cycle") end)
 mp.add_key_binding(nil, "progress-toggle", function()
-    user_opts.persistentprogress = not user_opts.persistentprogress
-    state.persistent_progress_toggle = user_opts.persistentprogress
+    user_opts.persistent_progress = not user_opts.persistent_progress
+    state.persistent_progress_toggle = user_opts.persistent_progress
     request_init()
 end)
 mp.register_script_message("osc-idlescreen", idlescreen_visibility)
