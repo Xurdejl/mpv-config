@@ -47,7 +47,6 @@ local user_opts = {
     cache_info = false,                    -- show cached time information
     cache_info_speed = false,              -- show cache speed per second
     scrollcontrols = true,                 -- allow scrolling when hovering certain OSC elements
-    loop_in_pause = true,                  -- enable looping by right-clicking pause
 
     hover_effect = "glow",                 -- active button hover effects: "glow", "color"; can use multiple separated by commas
 
@@ -1763,11 +1762,9 @@ local function osc_init()
         end
     end
     ne.eventresponder["mbtn_right_down"] = function ()
-        if user_opts.loop_in_pause then
-            mp.command("show-text '" .. (state.file_loop and locale.loop_disable or locale.loop_enable) .. "'")
-            state.file_loop = not state.file_loop
-            mp.set_property_native("loop-file", state.file_loop)
-        end
+        mp.command("show-text '" .. (state.file_loop and locale.loop_disable or locale.loop_enable) .. "'")
+        state.file_loop = not state.file_loop
+        mp.set_property_native("loop-file", state.file_loop)
     end
 
     --audio_track
