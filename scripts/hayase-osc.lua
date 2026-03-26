@@ -45,9 +45,6 @@ local user_opts = {
     window_controls = true,                -- show window controls (close, minimize, maximize) in borderless/fullscreen
     windowcontrols_title = "${media-title}", -- same as title but for windowcontrols
 
-    raise_subtitles = false,               -- raise subtitles above the OSC when shown
-    raise_subtitle_amount = 125,           -- amount by which subtitles are raised when the OSC is shown (in pixels)
-
     speed_button = false,                  -- show speed control button
     audio_button = false,                  -- show audio track button (only if more than 1 audio track exists)
     cache_info = false,                    -- show cached time information
@@ -375,8 +372,6 @@ local state = {
     playing_and_seeking = false,
     persistent_seekbar_element = nil,
     persistent_progress_toggle = user_opts.persistent_progress,
-    user_subpos = mp.get_property_number("sub-pos") or 100,
-    osc_adjusted_subpos = nil
 }
 
 local logo_lines = {
@@ -1622,51 +1617,10 @@ layouts["default"] = function ()
 end
 
 
-local function adjust_subtitles(visible)
-    if not mp.get_property_native("sid") then return end
-
-    local scale = state.fullscreen and user_opts.scalefullscreen or user_opts.scalewindowed
-
-    if visible and user_opts.raise_subtitles and state.osc_visible then
-        local w, h = mp.get_osd_size()
-        if h > 0 then
-            local raise_factor = user_opts.raise_subtitle_amount
-
-            -- adjust for scale
-            if scale > 1 then
-                raise_factor = raise_factor * (1 + (scale - 1) * 0.2)
-            elseif scale < 1 then
-                raise_factor = raise_factor * (0.8 + (scale - 0.5) * 0.5)
-            end
-
-            -- raise percentage
-            local raise_percent = (raise_factor / osc_param.playresy) * 100
-
-            -- don't adjust if user's sub-pos is higher than the raise factor
-            if state.user_subpos >= (100 - raise_percent) then
-                local adjusted = math.floor((osc_param.playresy - raise_factor) / osc_param.playresy * 100)
-                if adjusted < 0 then adjusted = state.user_subpos end
-
-                state.osc_adjusted_subpos = adjusted
-                mp.set_property_number("sub-pos", adjusted)
-            else
-                state.osc_adjusted_subpos = nil
-            end
-        end
-    elseif user_opts.raise_subtitles then
-        -- restore user's original subtitle position
-        if state.user_subpos then
-            mp.set_property_number("sub-pos", state.user_subpos)
-        end
-        state.osc_adjusted_subpos = nil
-    end
-end
-
 local function osc_visible(visible)
     if state.osc_visible ~= visible then
         state.osc_visible = visible
         update_margins()
-        adjust_subtitles(true)
     end
     request_tick()
 end
@@ -2263,7 +2217,6 @@ local function hide_osc()
         -- typically hide happens at render() from tick(), but now tick() is
         -- no-op and won't render again to remove the osc, so do that manually.
         state.osc_visible = false
-        adjust_subtitles(false)
         render_wipe(state.osd)
     elseif user_opts.fadeduration > 0 then
         if state.osc_visible then
@@ -2734,7 +2687,6 @@ mp.observe_property("seeking", "native", function(_, seeking)
 end)
 observe_cached("fullscreen", function ()
     state.marginsREQ = true
-    adjust_subtitles(state.osc_visible)
     request_init_resize()
 end)
 observe_cached("border", request_init_resize)
@@ -2760,7 +2712,6 @@ mp.observe_property("osd-dimensions", "native", function()
     -- (we could use the value instead of re-querying it all the time, but then
     --  we might have to worry about property update ordering)
     request_init_resize()
-    adjust_subtitles(state.osc_visible)
 end)
 mp.observe_property("osd-scale-by-window", "native", request_init_resize)
 mp.observe_property("touch-pos", "native", handle_touch)
@@ -2772,13 +2723,6 @@ mp.observe_property("paused-for-cache", "bool", function(_, val) state.buffering
 -- ensure compatibility with auto loop scripts
 mp.observe_property("loop-file", "bool", function(_, val)
     state.file_loop = (val ~= false)
-end)
-mp.observe_property("sub-pos", "native", function(_, value)
-    if value == nil then return end
-
-    if state.osc_adjusted_subpos == nil or value ~= state.osc_adjusted_subpos then
-        state.user_subpos = value
-    end
 end)
 
 -- mouse show/hide bindings
