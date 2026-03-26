@@ -30,7 +30,6 @@ local user_opts = {
 
     scalewindowed = 1,                     -- osc scale factor when windowed
     scalefullscreen = 1,                   -- osc scale factor when fullscreen
-    vidscale = "false",                    -- scale osc with the video
 
     title = "${media-title}",              -- title above seekbar format: "${media-title}" or "${filename}"
 
@@ -1618,18 +1617,7 @@ local function osc_init()
         scale = user_opts.scalewindowed
     end
 
-    local scale_with_video
-    if user_opts.vidscale == "auto" then
-        scale_with_video = mp.get_property_native("osd-scale-by-window")
-    else
-        scale_with_video = user_opts.vidscale == "yes"
-    end
-
-    if scale_with_video then
-        osc_param.unscaled_y = baseResY
-    else
-        osc_param.unscaled_y = display_h
-    end
+    osc_param.unscaled_y = display_h
     osc_param.playresy = osc_param.unscaled_y / scale
     if display_aspect > 0 then
         osc_param.display_aspect = display_aspect
