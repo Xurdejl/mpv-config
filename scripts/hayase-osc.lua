@@ -18,7 +18,6 @@ mp.set_property("osc", "no")
 -- default user option values
 -- do not touch, change them in hayase-osc.conf
 local user_opts = {
-    language = "en",                       -- set language
     idlescreen = true,                     -- show mpv logo when idle
     audioonlyscreen = false,               -- show mpv logo when no video
     osc_on_start = false,                  -- show OSC on start of every file
@@ -172,84 +171,32 @@ local icons = {
 }
 
 --- localization
-local language = {
-    ["en"] = {
-        idle = "Drop files or URLs to play here",
-        na = "N/A",
-        audio = "Audio",
-        subtitle = "Subtitle",
-        no_subs = "No subtitles",
-        no_audio = "No audio tracks",
-        playlist = "Playlist",
-        no_playlist = "Empty playlist",
-        chapter = "Chapter",
-        ontop = "Pin on top",
-        ontop_disable = "Unpin",
-        loop_enable = "Repeat file on",
-        loop_disable = "Repeat file off",
-        speed_control = "Playback speed",
-        cache = "Cache",
-        buffering = "Buffering",
-        menu = "Menu",
-        replay = "Replay",
-        play = "Play",
-        pause = "Pause",
-        fullscreen_enter = "Full screen",
-        fullscreen_exit = "Exit full screen",
-        playlist_next = "Next",
-        playlist_prev = "Previous",
-    },
+local locale = {
+    idle = "Drop files or URLs to play here",
+    na = "N/A",
+    audio = "Audio",
+    subtitle = "Subtitle",
+    no_subs = "No subtitles",
+    no_audio = "No audio tracks",
+    playlist = "Playlist",
+    no_playlist = "Empty playlist",
+    chapter = "Chapter",
+    ontop = "Pin on top",
+    ontop_disable = "Unpin",
+    loop_enable = "Repeat file on",
+    loop_disable = "Repeat file off",
+    speed_control = "Playback speed",
+    cache = "Cache",
+    buffering = "Buffering",
+    menu = "Menu",
+    replay = "Replay",
+    play = "Play",
+    pause = "Pause",
+    fullscreen_enter = "Full screen",
+    fullscreen_exit = "Exit full screen",
+    playlist_next = "Next",
+    playlist_prev = "Previous",
 }
-
--- locale JSON file handler
-local function get_locale_from_json(path)
-    local expand_path = mp.command_native({'expand-path', path})
-
-    local file_info = utils.file_info(expand_path)
-    if not file_info or not file_info.is_file then
-        return nil
-    end
-
-    local json_file = io.open(expand_path, 'r')
-    if not json_file then
-        return nil
-    end
-
-    local json = json_file:read('*all')
-    json_file:close()
-
-    local json_table, parse_error = utils.parse_json(json)
-    if not json_table then
-        mp.msg.error("JSON parse error:" .. parse_error)
-    end
-    return json_table
-end
-
--- load external locales if available
-local locale_path = "~~/script-opts/hayase-osc-locale.json"
-local external = get_locale_from_json(locale_path)
-
-if external then
-    for lang, strings in pairs(external) do
-        if type(strings) == "table" then
-            language[lang] = strings
-
-            -- fill in missing locales with English defaults
-            for key, value in pairs(language["en"]) do
-                if strings[key] == nil then
-                    strings[key] = value or ""  -- fallback to empty string if key is missing
-                end
-            end
-        else
-            mp.msg.warn("Locale data for language " .. lang .. " is not in the correct format.")
-        end
-    end
-end
-
-local locale
-local function set_osc_locale()
-    locale = language[user_opts.language] or language["en"]
-end
 
 local function contains(list, item)
     local t = type(list) == "table" and list or {}
@@ -2896,14 +2843,6 @@ local function validate_user_opts()
         user_opts.seek_handle_size = 0
     end
 
-    if not language[user_opts.language] then
-       msg.warn("language '" .. user_opts.language .. "' not found. Ignoring.")
-       user_opts.language = "en"
-       if not language["en"] then
-          msg.warn("ERROR: can't find the default 'en' language or the one set by user_opts.")
-       end
-    end
-
     local colors = {
         user_opts.background_color, user_opts.seekbarfg_color, user_opts.seekbarbg_color,
         user_opts.title_color, user_opts.held_element_color, user_opts.thumbnail_border_color,
@@ -2928,7 +2867,6 @@ end
 -- read options from config and command-line
 opt.read_options(user_opts, "hayase-osc", function(changed)
     validate_user_opts()
-    set_osc_locale()
     set_osc_styles()
     set_time_styles(changed.timetotal, changed.timems)
     if changed.tick_delay or changed.tick_delay_follow_display_fps then
@@ -2941,7 +2879,6 @@ opt.read_options(user_opts, "hayase-osc", function(changed)
 end)
 
 validate_user_opts()
-set_osc_locale()
 set_osc_styles()
 set_time_styles(true, true)
 set_tick_delay()
