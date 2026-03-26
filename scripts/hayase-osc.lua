@@ -347,6 +347,8 @@ local state = {
     idle_active = false,
     audio_track_count = 0,
     sub_track_count = 0,
+    playlist_count = 0,
+    playlist_pos = 0,
     no_video = false,
     file_loaded = false,
     enabled = true,
@@ -1745,8 +1747,8 @@ local function osc_init()
     elements = {}
 
     -- some often needed stuff
-    local pl_count = mp.get_property_number("playlist-count", 0)
-    local have_pl = pl_count > 1
+    local pl_count = state.playlist_count
+    local have_pl = state.playlist_pos + 1
     local pl_pos = mp.get_property_number("playlist-pos", 0) + 1
     local have_ch = mp.get_property_number("chapters", 0) > 0
     local loop = mp.get_property("loop-playlist", "no")
@@ -2708,8 +2710,8 @@ mp.register_event("file-loaded", function()
 end)
 mp.register_event("start-file", request_init)
 mp.observe_property("track-list", "native", update_tracklist)
-mp.observe_property("playlist-count", "native", request_init)
-mp.observe_property("playlist-pos", "native", request_init)
+observe_cached("playlist-count", request_init)
+observe_cached("playlist-pos", request_init)
 observe_cached("chapter-list", function ()
     table.sort(state.chapter_list, function(a, b) return a.time < b.time end)
     update_duration_watch()
