@@ -19,8 +19,6 @@ mp.set_property("osc", "no")
 -- do not touch, change them in hayase-osc.conf
 local user_opts = {
     language = "en",                       -- set language
-    showwindowed = true,                   -- show OSC when windowed
-    showfullscreen = true,                 -- show OSC when fullscreen
     idlescreen = true,                     -- show mpv logo when idle
     audioonlyscreen = false,               -- show mpv logo when no video
     osc_on_start = false,                  -- show OSC on start of every file
@@ -685,10 +683,7 @@ local function update_margins()
     local margins = osc_param.video_margins
 
     -- Don't use margins if it's visible only temporarily.
-    if not state.osc_visible or get_hidetimeout() >= 0 or
-       (state.fullscreen and not user_opts.showfullscreen) or
-       (not state.fullscreen and not user_opts.showwindowed)
-    then
+    if not state.osc_visible or get_hidetimeout() >= 0 then
         margins = {l = 0, r = 0, t = 0, b = 0}
     end
 
@@ -2584,9 +2579,7 @@ tick = function()
             mp.disable_key_bindings("showhide_wc")
             state.showhide_enabled = false
         end
-    elseif (state.fullscreen and user_opts.showfullscreen)
-        or (not state.fullscreen and user_opts.showwindowed) then
-
+    else
         if state.no_video and state.file_loaded and user_opts.audioonlyscreen then
             render_logo()
         else
@@ -2594,10 +2587,6 @@ tick = function()
         end
         -- render the OSC
         render()
-    else
-        -- Flush OSD
-        render_wipe(state.osd)
-        render_wipe(state.logo_osd)
     end
 
     state.tick_last_time = mp.get_time()
