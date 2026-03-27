@@ -1570,19 +1570,9 @@ local function build_cache_seek_ranges()
     return nranges
 end
 
-local function osc_init()
-    msg.debug("osc_init")
-
-    -- set canvas resolution according to display aspect and scaling setting
-    local baseResY = 720
+local function setup_canvas()
     local _, display_h, display_aspect = mp.get_osd_size()
-    local scale
-
-    if state.fullscreen then
-        scale = user_opts.scalefullscreen
-    else
-        scale = user_opts.scalewindowed
-    end
+    local scale = state.fullscreen and user_opts.scalefullscreen or user_opts.scalewindowed
 
     osc_param.unscaled_y = display_h
     osc_param.playresy = osc_param.unscaled_y / scale
@@ -1590,13 +1580,12 @@ local function osc_init()
         osc_param.display_aspect = display_aspect
     end
     osc_param.playresx = osc_param.playresy * osc_param.display_aspect
+end
 
-    -- stop seeking with the slider to prevent skipping files
+local function create_elements()
     state.active_element = nil
-
     elements = {}
 
-    -- some often needed stuff
     local pl_count = state.playlist_count
     local have_pl = state.playlist_pos + 1
     local pl_pos = mp.get_property_number("playlist-pos", 0) + 1
@@ -1763,7 +1752,6 @@ local function osc_init()
     ne.tooltip_style = osc_styles.tooltip
     ne.tooltipF = function ()
         local volume = mp.get_property_number("volume", 0)
-        -- show only one decimal, if decimals exist
         volume = volume % 1 == 0 and string.format("%.0f", volume) or string.format("%.1f", volume)
         return volume
     end
@@ -1912,10 +1900,7 @@ local function osc_init()
     end
     ne.slider.seekRangesF = build_cache_seek_ranges
     ne.eventresponder["mouse_move"] = function (element)
-        if not element.state.mbtnleft then return end -- allow drag for mbtnleft only!
-        -- mouse move events may pile up during seeking and may still get
-        -- sent when the user is done seeking, so we need to throw away
-        -- identical seeks
+        if not element.state.mbtnleft then return end
         state.playing_and_seeking = true
         if not mp.get_property_bool("pause") then
             mp.commandv("cycle", "pause")
@@ -1934,7 +1919,7 @@ local function osc_init()
     ne.eventresponder["mbtn_left_down"] = function (element)
         element.state.mbtnleft = true
         element.state.was_paused = mp.get_property_bool("pause")
-        state.playing_and_seeking = false  -- clear state
+        state.playing_and_seeking = false
         mp.commandv("seek", get_slider_value(element), "absolute-percent+exact")
     end
     ne.eventresponder["shift+mbtn_left_down"] = function (element)
@@ -1946,7 +1931,6 @@ local function osc_init()
     ne.eventresponder["mbtn_left_up"] = function (element)
         element.state.mbtnleft = false
         if state.playing_and_seeking then
-            -- only unpause if the video was playing before the drag started
             if not element.state.was_paused and not mp.get_property_bool("eof-reached") then
                 mp.commandv("cycle", "pause")
             end
@@ -2056,21 +2040,23 @@ local function osc_init()
         state.tc_ms = not state.tc_ms
         request_init()
     end
+end
 
-    -- load layout
+local function osc_init()
+    msg.debug("osc_init")
+
+    setup_canvas()
+    create_elements()
+
     layout_default()
 
-    -- load window controls
     if window_controls_enabled() then
         window_controls()
     end
 
-    -- cache persistent seekbar element
     state.persistent_seekbar_element = elements["persistent_seekbar"]
 
-    --do something with the elements
     prepare_elements()
-
     update_margins()
 end
 
