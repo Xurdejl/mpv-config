@@ -297,7 +297,6 @@ local state = {
     speed = 1,
     file_loop = false,
     slider_pos = 0,
-    touching_progress_bar = false,            -- if the mouse is touching the progress bar
     initial_border = mp.get_property("border"),
     playtime_hour_force_init = false,       -- used to force request_init() once
     playing_and_seeking = false,
@@ -876,8 +875,7 @@ local function draw_seekbar_progress(element, elem_ass)
     end
 end
 
-local function render_elements(master_ass, osc_vis, wc_vis)
-    state.touching_progress_bar = false
+local function render_elements(master_ass)
     local osd_w = osc_param.osd_w
     local r_w = osc_param.r_w
     local r_h = osc_param.r_h
@@ -978,7 +976,7 @@ local function render_elements(master_ass, osc_vis, wc_vis)
 
                         if osd_w and r_w > 0 then
                             -- Only attempt to fetch and measure chapter logic if this is the seekbar
-                            if element.name == "seekbar" and state.touching_progress_bar then
+                            if element.name == "seekbar" then
                                 local dur = mp.get_property_number("duration", 0)
                                 if dur > 0 then
                                     local ch = get_chapter(slider_pos * dur / 100)
@@ -1898,7 +1896,6 @@ local function create_elements()
         return mp.get_property_number("percent-pos")
     end
     ne.slider.tooltip_f = function (pos)
-        state.touching_progress_bar = true
         local duration = mp.get_property_number("duration")
         if duration ~= nil and pos ~= nil then
             return format_time(duration * (pos / 100))
