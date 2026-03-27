@@ -2531,6 +2531,10 @@ end
 
 mp.register_event("file-loaded", function()
     state.new_file_flag = true
+    state.file_loaded = true
+    state.no_video = mp.get_property_native("current-tracks/video") == nil
+    request_tick()
+
     if user_opts.automatickeyframemode then
        if mp.get_property_number("duration", 0) > user_opts.automatickeyframelimit then
             user_opts.seekbarkeyframes = true
@@ -2572,11 +2576,6 @@ observe_cached("title-bar", request_init_resize)
 observe_cached("window-maximized", request_init_resize)
 observe_cached("idle-active", request_tick)
 
-mp.register_event("file-loaded", function()
-    state.file_loaded = true
-    state.no_video = mp.get_property_native("current-tracks/video") == nil
-    request_tick()
-end)
 mp.add_hook("on_unload", 50, function()
     state.file_loaded = false
     request_tick()
