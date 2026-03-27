@@ -873,6 +873,9 @@ end
 
 local function render_elements(master_ass, osc_vis, wc_vis)
     state.touching_progress_bar = false
+    local osd_w = osc_param.osd_w
+    local r_w = osc_param.r_w
+    local r_h = osc_param.r_h
 
     local function render_element(n)
         local element = elements[n]
@@ -958,8 +961,6 @@ local function render_elements(master_ass, osc_vis, wc_vis)
                         local ty = element.hitbox.y1 - 8
                         if an ~= 2 then ty = ty + elem_geo.h / 2 end
                         local tx = get_virt_mouse_pos()
-                        local osd_w = mp.get_property_number("osd-width")
-                        local r_w, r_h = get_virt_scale_factor()
 
                         local pad_h, pad_v = 4, 4
                         local fs = user_opts.font_size_md
@@ -1128,8 +1129,6 @@ local function render_elements(master_ass, osc_vis, wc_vis)
                         an = 8
                     end
 
-                    local osd_w = mp.get_property_number("osd-width")
-                    local r_w = get_virt_scale_factor()
                     if osd_w and r_w > 0 then
                         local tooltip_width = estimate_text_width(tooltiplabel, element.tooltip_style)
                         local margin = 10 * r_w
@@ -2391,6 +2390,10 @@ local function render()
             end
         end
     end
+
+    -- cache per-frame properties once for the entire render pass
+    osc_param.osd_w = mp.get_property_number("osd-width")
+    osc_param.r_w, osc_param.r_h = get_virt_scale_factor()
 
     -- actual rendering
     local ass = assdraw.ass_new()
