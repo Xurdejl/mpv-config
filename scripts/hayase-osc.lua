@@ -1634,12 +1634,6 @@ local function osc_init()
     local pl_count = state.playlist_count
     local have_pl = state.playlist_pos + 1
     local pl_pos = mp.get_property_number("playlist-pos", 0) + 1
-    local have_ch = mp.get_property_number("chapters", 0) > 0
-    local loop = mp.get_property("loop-playlist", "no")
-
-    local audio_offset = (state.audio_track_count == 0 or not mp.get_property_native("aid")) and 100 or 0
-    local sub_offset = (state.sub_track_count == 0 or not mp.get_property_native("sid")) and 100 or 0
-    local playlist_offset = not have_pl and 100 or 0
 
     local ne
 
@@ -2065,7 +2059,6 @@ local function osc_init()
     end
 
     -- Time codes display
-    local tc_visible_offset = audio_offset + sub_offset + playlist_offset
     ne = new_element("time_codes", "button")
     ne.visible = mp.get_property_number("duration", 0) > 0
     ne.content = function()
