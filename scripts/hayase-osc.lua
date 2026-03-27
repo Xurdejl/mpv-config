@@ -220,7 +220,6 @@ local thumbfast = {
 
 local tick_delay = 1 / 60
 local window_control_box_width = 150
-local layouts = {}
 local is_december = os.date("*t").month == 12
 
 -- hover_effect flags
@@ -501,11 +500,6 @@ local function get_hitbox_coords(x, y, an, w, h)
     return alignments[an]()
 end
 
-local function get_hitbox_coords_geo(geometry)
-    return get_hitbox_coords(geometry.x, geometry.y, geometry.an,
-        geometry.w, geometry.h)
-end
-
 local function get_element_hitbox(element)
     return element.hitbox.x1, element.hitbox.y1,
         element.hitbox.x2, element.hitbox.y2
@@ -520,25 +514,13 @@ local function mouse_hit(element)
     return mouse_hit_coords(get_element_hitbox(element))
 end
 
-local function limit_range(min, max, val)
-    if val > max then
-        val = max
-    elseif val < min then
-        val = min
-    end
-    return val
-end
-
--- translate value into element coordinates
 local function get_slider_ele_pos_for(element, val)
     local ele_pos = scale_value(
         element.slider.min.value, element.slider.max.value,
         element.slider.min.ele_pos, element.slider.max.ele_pos,
         val)
 
-    return limit_range(
-        element.slider.min.ele_pos, element.slider.max.ele_pos,
-        ele_pos)
+    return math.min(element.slider.max.ele_pos, math.max(element.slider.min.ele_pos, ele_pos))
 end
 
 -- translates global (mouse) coordinates to value
@@ -549,9 +531,7 @@ local function get_slider_value_at(element, glob_pos)
             element.slider.min.value, element.slider.max.value,
             glob_pos)
 
-        return limit_range(
-            element.slider.min.value, element.slider.max.value,
-            val)
+        return math.min(element.slider.max.value, math.max(element.slider.min.value, val))
     end
     -- fall back incase of loading errors
     return 0
@@ -592,18 +572,6 @@ local function ass_append_alpha(ass, alpha, modifier, inverse)
 
     ass:append(string.format("{\\1a&H%X&\\2a&H%X&\\3a&H%X&\\4a&H%X&}",
                ar[1], ar[2], ar[3], ar[4]))
-end
-
-local function ass_draw_cir_cw(ass, x, y, r)
-    ass:round_rect_cw(x-r, y-r, x+r, y+r, r)
-end
-
-local function ass_draw_rr_h_cw(ass, x0, y0, x1, y1, r1, hexagon, r2)
-    if hexagon then
-        ass:hexagon_cw(x0, y0, x1, y1, r1, r2)
-    else
-        ass:round_rect_cw(x0, y0, x1, y1, r1, r2)
-    end
 end
 
 local function get_hidetimeout()
@@ -698,11 +666,6 @@ local function update_tracklist(_, track_list)
     request_init()
 end
 
--- convert slider_pos to volume
-local function set_volume(slider_pos)
-    return math.floor(slider_pos)
-end
-
 -- WindowControl helpers
 local function window_controls_enabled()
     local val = user_opts.window_top_bar
@@ -742,7 +705,7 @@ local function prepare_elements()
         local elem_geo = element.layout.geometry
 
         -- Calculate the hitbox
-        local bX1, bY1, bX2, bY2 = get_hitbox_coords_geo(elem_geo)
+        local bX1, bY1, bX2, bY2 = get_hitbox_coords(elem_geo.x, elem_geo.y, elem_geo.an, elem_geo.w, elem_geo.h)
         element.hitbox = {x1 = bX1, y1 = bY1, x2 = bX2, y2 = bY2}
 
         local style_ass = assdraw.ass_new()
@@ -761,8 +724,11 @@ local function prepare_elements()
         if element.type == "box" then
             --draw box
             static_ass:draw_start()
-            ass_draw_rr_h_cw(static_ass, 0, 0, elem_geo.w, elem_geo.h,
-                             element.layout.box.radius, element.layout.box.hexagon)
+            if element.layout.box.hexagon then
+                static_ass:hexagon_cw(0, 0, elem_geo.w, elem_geo.h, element.layout.box.radius, 0)
+            else
+                static_ass:round_rect_cw(0, 0, elem_geo.w, elem_geo.h, element.layout.box.radius)
+            end
             static_ass:draw_stop()
 
         elseif element.type == "slider" then
@@ -852,7 +818,7 @@ local function draw_seekbar_handle(element, elem_ass, override_alpha)
     local xp = get_slider_ele_pos_for(element, pos) -- handle position
 
     if display_handle then
-        ass_draw_cir_cw(elem_ass, xp, elem_geo.h / 2, rh)
+        elem_ass:round_rect_cw(xp - rh, elem_geo.h / 2 - rh, xp + rh, elem_geo.h / 2 + rh, rh)
 
         return xp, rh
     end
@@ -1342,7 +1308,7 @@ end
 -- hayase-osc Layout
 --
 -- Default layout
-layouts["default"] = function ()
+local function layout_default()
     local chapter_index = mp.get_property_number("chapter", -1) >= 0
     local osc_height_offset =
         ((user_opts.title_mbtn_left_command == "" and user_opts.title_mbtn_right_command == "") and 25 or 0) +
@@ -1814,10 +1780,10 @@ local function osc_init()
     ne.slider.posF = function ()
         return mp.get_property_number("volume")
     end
-    ne.slider.tooltipF = function (pos) return (state.audio_track_count > 0) and set_volume(pos) or "" end
+    ne.slider.tooltipF = function (pos) return (state.audio_track_count > 0) and math.floor(pos) or "" end
     ne.eventresponder["mouse_move"] = function (element)
         local pos = get_slider_value(element)
-        local setvol = set_volume(pos)
+        local setvol = math.floor(pos)
         if element.state.lastseek == nil or element.state.lastseek ~= setvol then
                 mp.commandv("osd-msg", "set", "volume", setvol)
                 element.state.lastseek = setvol
@@ -1825,7 +1791,7 @@ local function osc_init()
     end
     ne.eventresponder["mbtn_left_down"] = function (element)
         local pos = get_slider_value(element)
-        mp.commandv("osd-msg", "set", "volume", set_volume(pos))
+        mp.commandv("osd-msg", "set", "volume", math.floor(pos))
     end
     ne.eventresponder["reset"] = function (element) element.state.lastseek = nil end
     if user_opts.scrollcontrols then
@@ -2092,7 +2058,7 @@ local function osc_init()
     end
 
     -- load layout
-    layouts["default"]()
+    layout_default()
 
     -- load window controls
     if window_controls_enabled() then
@@ -2585,9 +2551,6 @@ observe_cached("chapter-list", function ()
     update_duration_watch()
     request_init()
 end)
-local function show_osc_on_seek_event()
-    show_osc()
-end
 mp.register_event("seek", function()
     if state.new_file_flag then
         state.new_file_flag = false
