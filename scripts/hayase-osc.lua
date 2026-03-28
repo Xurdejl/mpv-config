@@ -47,8 +47,6 @@ local user_opts = {
     cache_info_speed = false,              -- show cache speed per second
     scrollcontrols = true,                 -- allow scrolling when hovering certain OSC elements
 
-    hover_effect = "glow",                 -- active button hover effects: "glow", "color"; can use multiple separated by commas
-
     seek_handle_size = 0,                  -- size ratio of the progress bar handle (range: 0 ~ 1)
     seekrange = true,                      -- show seek range overlay
     seekrangealpha = 150,                  -- transparency of the seek range
@@ -72,7 +70,6 @@ local user_opts = {
     seekbarbg_color = "#D9D9D9",           -- color of the remaining seekbar
     volumebar_match_seek_color = false,      -- match volume bar color with seekbar color
     held_element_color = "#999999",        -- color of the element when held down (pressed)
-    hover_effect_color = "#E9F2FA",        -- color of a hovered button when hover_effect includes "color"
     thumbnail_border_color = "#FFFFFF",    -- color of the border for thumbnails (with thumbfast)
     thumbnail_border_outline = "#FFFFFF",  -- color of the border outline for thumbnails
 
@@ -205,21 +202,6 @@ local locale = {
     playlist_prev = "Previous",
 }
 
-local function contains(list, item)
-    local t = type(list) == "table" and list or {}
-    if type(list) ~= "table" then
-        for str in string.gmatch(list, '([^,]+)') do
-            t[#t + 1] = str:match("^%s*(.-)%s*$") -- trim spaces
-        end
-    end
-    for _, v in ipairs(t) do
-        if v == item then
-            return true
-        end
-    end
-    return false
-end
-
 local thumbfast = {
     width = 0,
     height = 0,
@@ -230,10 +212,6 @@ local thumbfast = {
 local tick_delay = 1 / 60
 local window_control_box_width = 150
 local is_december = os.date("*t").month == 12
-
--- hover_effect flags
-local hover_effect_color = false
-local hover_effect_glow  = false
 
 local function osc_color_convert(color)
     return color:sub(6,7) .. color:sub(4,5) ..  color:sub(2,3)
@@ -260,11 +238,8 @@ local function set_osc_styles()
         volumebar_fg = "{\\blur1\\bord1\\1c&H" .. osc_color_convert(user_opts.buttons_color) .. "&}",
         buttons = "{\\blur0\\bord0\\1c&H" .. osc_color_convert(user_opts.buttons_color) .. "&\\3c&HFFFFFF&\\fs" .. buttons_size .. "\\fn" .. icon_font .. "}",
         element_down = "{\\1c&H" .. osc_color_convert(user_opts.held_element_color) .. "&}",
-        element_hover = "{" .. (contains(user_opts.hover_effect, "color") and "\\1c&H" .. osc_color_convert(user_opts.hover_effect_color) .. "&" or "") .."\\2c&HFFFFFF&" .. "}",
+        hover_bg = "{\\blur0\\bord0\\1c&HFAFAFA&}"
     }
-    -- cache hover_effect flags
-    hover_effect_color = contains(user_opts.hover_effect, "color")
-    hover_effect_glow  = contains(user_opts.hover_effect, "glow")
 end
 
 -- internal states, do not touch
@@ -922,6 +897,33 @@ local function render_elements(master_ass, osc_vis, wc_vis)
         end
 
         local elem_ass = assdraw.ass_new()
+
+        -- Hover background box
+        if element.type == "button" and element.hover_effect then
+            local is_clickable = element.eventresponder and (
+                element.eventresponder["mbtn_left_down"] ~= nil or
+                element.eventresponder["mbtn_left_up"] ~= nil
+            )
+            if mouse_hit(element) and is_clickable and element.enabled then
+                local hx1, hy1, hx2, hy2 = get_element_hitbox(element)
+                local pad = element.hover_pad ~= nil and element.hover_pad or 10
+                elem_ass:append("{}")
+                elem_ass:new_event()
+                elem_ass:pos(0, 0)
+                elem_ass:an(7)
+                local hover_base_alpha = element.hover_alpha or 0xCC
+                ass_append_alpha(elem_ass, {[1] = hover_base_alpha, [2] = 255, [3] = 255, [4] = 255}, element.layout.alpha[1])
+                local hover_style = element.hover_color
+                    and "{\\blur0\\bord0\\1c&H" .. osc_color_convert(element.hover_color) .. "&}"
+                    or osc_styles.hover_bg
+                elem_ass:append(hover_style)
+                elem_ass:draw_start()
+                local hover_radius = element.hover_radius ~= nil and element.hover_radius or 6
+                elem_ass:round_rect_cw(hx1 - pad, hy1 - pad, hx2 + pad, hy2 + pad, hover_radius)
+                elem_ass:draw_stop()
+            end
+        end
+
         elem_ass:merge(style_ass)
 
         if element.type ~= "button" then
@@ -1099,27 +1101,7 @@ local function render_elements(master_ass, osc_vis, wc_vis)
                 buttontext = string.format("{\\fscx%f}", (maxchars/#buttontext)*100) .. buttontext
             end
 
-            -- add hover effects
-            local button_lo = element.layout.button
-            local is_clickable = element.eventresponder and (
-                element.eventresponder["mbtn_left_down"] ~= nil or
-                element.eventresponder["mbtn_left_up"] ~= nil
-            )
-            local hovered = mouse_hit(element) and is_clickable and element.enabled and state.mouse_down_counter == 0
-            local hoverstyle = button_lo.hoverstyle
-            if hovered and hover_effect_color then
-                elem_ass:append(hoverstyle .. buttontext)
-            else
-                elem_ass:append(buttontext)
-            end
-
-            -- apply blur effect if "glow" is in hover effects
-            if hovered and hover_effect_glow then
-                local shadow_ass = assdraw.ass_new()
-                shadow_ass:merge(style_ass)
-                shadow_ass:append("{\\blur5}" .. hoverstyle .. buttontext)
-                elem_ass:merge(shadow_ass)
-            end
+            elem_ass:append(buttontext)
 
             -- add tooltip for button elements
             if element.tooltip_f ~= nil then
@@ -1135,12 +1117,14 @@ local function render_elements(master_ass, osc_vis, wc_vis)
                         tooltiplabel = element.nothingavailable
                     end
 
+                    local pad = element.hover_pad ~= nil and element.hover_pad or 10
+
                     local an = 2
-                    local ty = element.hitbox.y1 - 4
+                    local ty = element.hitbox.y1 - pad
                     local tx = (element.hitbox.x1 + element.hitbox.x2) / 2
 
                     if ty < osc_param.playresy / 2 then
-                        ty = element.hitbox.y2 - 4
+                        ty = element.hitbox.y2 + pad
                         an = 8
                     end
 
@@ -1212,6 +1196,7 @@ local function new_element(name, type)
     elements[name].enabled = true
     elements[name].softrepeat = false
     elements[name].styledown = (type == "button")
+    elements[name].hover_effect = false
     elements[name].state = {}
 
     if type == "slider" then
@@ -1234,7 +1219,6 @@ local function add_layout(name)
         if elements[name].type == "button" then
             elements[name].layout.button = {
                 maxchars = nil,
-                hoverstyle = osc_styles.element_hover,
             }
         elseif elements[name].type == "slider" then
             -- slider defaults
@@ -1246,7 +1230,6 @@ local function add_layout(name)
                 tooltip_style = "",
                 tooltip_an = 2,
                 alpha = {[1] = 0, [2] = 255, [3] = 88, [4] = 255},
-                hoverstyle = osc_styles.element_hover,
             }
         elseif elements[name].type == "box" then
             elements[name].layout.box = {radius = 0, hexagon = false}
@@ -1277,9 +1260,9 @@ local function window_controls()
     local titlebox_right = wc_geo.w - controlbox_w
 
     local button_y = wc_geo.y - (wc_geo.h / 2)
-    local first_geo = {x = controlbox_left + 36, y = button_y, an = 5, w = 40, h = wc_geo.h}
-    local second_geo = {x = controlbox_left + 84, y = button_y, an = 5, w = 40, h = wc_geo.h}
-    local third_geo = {x = controlbox_left + 126, y = button_y, an = 5, w = 40, h = wc_geo.h}
+    local first_geo = {x = controlbox_left + 25, y = button_y, an = 5, w = 50, h = wc_geo.h}
+    local second_geo = {x = controlbox_left + 75, y = button_y, an = 5, w = 50, h = wc_geo.h}
+    local third_geo = {x = controlbox_left + 125, y = button_y, an = 5, w = 50, h = wc_geo.h}
 
     -- Window controls
     if user_opts.window_controls then
@@ -1287,7 +1270,6 @@ local function window_controls()
         lo = add_layout("close")
         lo.geometry = third_geo
         lo.style = osc_styles.window_control
-        lo.button.hoverstyle = "{\\c&2311E8&\\3c&H000000&}"
 
         -- Minimize: 🗕
         lo = add_layout("minimize")
@@ -1603,16 +1585,27 @@ local function create_elements()
     -- Window controls
     -- Close: 🗙
     ne = new_element("close", "button")
+    ne.hover_effect = true
+    ne.hover_color = "#E81123"
+    ne.hover_alpha = 0x00
+    ne.hover_radius = 0
+    ne.hover_pad = 0
     ne.content = icons.window.close
     ne.eventresponder["mbtn_left_up"] = function () mp.commandv("quit") end
 
     -- Minimize: 🗕
     ne = new_element("minimize", "button")
+    ne.hover_effect = true
+    ne.hover_radius = 0
+    ne.hover_pad = 0
     ne.content = icons.window.minimize
     ne.eventresponder["mbtn_left_up"] = function () mp.commandv("cycle", "window-minimized") end
 
     -- Maximize: 🗖 /🗗
     ne = new_element("maximize", "button")
+    ne.hover_effect = true
+    ne.hover_radius = 0
+    ne.hover_pad = 0
     ne.content = (state.window_maximized or state.fullscreen) and icons.window.unmaximize or icons.window.maximize
     ne.eventresponder["mbtn_left_up"] = function () mp.commandv("cycle", (state.fullscreen and "fullscreen" or "window-maximized")) end
 
@@ -1655,6 +1648,7 @@ local function create_elements()
 
     -- menu
     ne = new_element("menu", "button")
+    ne.hover_effect = true
     ne.content = icons.menu
     ne.tooltip_style = osc_styles.tooltip
     ne.tooltip_f = locale.menu
@@ -1663,6 +1657,7 @@ local function create_elements()
     -- playlist buttons
     -- prev
     ne = new_element("playlist_prev", "button")
+    ne.hover_effect = true
     ne.visible = pl_pos > 1
     ne.content = icons.previous
     ne.tooltip_style = osc_styles.tooltip
@@ -1671,6 +1666,7 @@ local function create_elements()
 
     --next
     ne = new_element("playlist_next", "button")
+    ne.hover_effect = true
     ne.visible = have_pl and (pl_pos < pl_count)
     ne.content = icons.next
     ne.tooltip_style = osc_styles.tooltip
@@ -1680,6 +1676,7 @@ local function create_elements()
     --play control buttons
     --play_pause
     ne = new_element("play_pause", "button")
+    ne.hover_effect = true
     ne.tooltip_style = osc_styles.tooltip
     ne.tooltip_f = function ()
         if mp.get_property_bool("eof-reached") then
@@ -1715,6 +1712,7 @@ local function create_elements()
 
     --audio_track
     ne = new_element("audio_track", "button")
+    ne.hover_effect = true
     ne.enabled = state.audio_track_count > 0
     ne.off = state.audio_track_count == 0 or not mp.get_property_native("aid")
     ne.content = icons.audio
@@ -1728,6 +1726,7 @@ local function create_elements()
 
     --sub_track
     ne = new_element("sub_track", "button")
+    ne.hover_effect = true
     ne.enabled = state.sub_track_count > 0
     ne.off = state.sub_track_count == 0 or not mp.get_property_native("sid")
     ne.content = icons.subtitle
@@ -1741,6 +1740,7 @@ local function create_elements()
 
     -- vol_ctrl
     ne = new_element("vol_ctrl", "button")
+    ne.hover_effect = true
     ne.enabled = state.audio_track_count > 0
     ne.off = state.audio_track_count == 0
     ne.content = function ()
@@ -1803,6 +1803,7 @@ local function create_elements()
 
     -- fullscreen
     ne = new_element("fullscreen", "button")
+    ne.hover_effect = true
     ne.content = function () return state.fullscreen and icons.fullscreen_exit or icons.fullscreen end
     ne.tooltip_style = osc_styles.tooltip
     ne.tooltip_f = function () return state.fullscreen and locale.fullscreen_exit or locale.fullscreen_enter end
@@ -1810,6 +1811,7 @@ local function create_elements()
 
     --tog_ontop
     ne = new_element("tog_ontop", "button")
+    ne.hover_effect = true
     ne.content = function () return not mp.get_property_bool("ontop") and icons.ontop_on or icons.ontop_off end
     ne.tooltip_style = osc_styles.tooltip
     ne.tooltip_f = function () return not mp.get_property_bool("ontop") and locale.ontop or locale.ontop_disable end
@@ -2781,7 +2783,7 @@ local function validate_user_opts()
     local colors = {
         user_opts.background_color, user_opts.seekbarfg_color, user_opts.seekbarbg_color,
         user_opts.title_color, user_opts.held_element_color, user_opts.thumbnail_border_color,
-        user_opts.chapter_title_color, user_opts.hover_effect_color, user_opts.thumbnail_border_outline
+        user_opts.chapter_title_color, user_opts.thumbnail_border_outline
     }
 
     for _, color in pairs(colors) do
