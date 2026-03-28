@@ -290,6 +290,11 @@ local state = {
     chapter_list = {},                      -- sorted by time
     visibility_modes = {},                  -- visibility_modes to cycle through
     mute = false,
+    pause = false,
+    eof_reached = false,
+    volume = 0,
+    ontop = false,
+    speed = 1,
     file_loop = false,
     slider_pos = 0,
     touching_progress_bar = false,            -- if the mouse is touching the progress bar
@@ -1677,36 +1682,30 @@ local function create_elements()
     ne = new_element("play_pause", "button")
     ne.hover_effect = true
     ne.tooltip_style = osc_styles.tooltip
-    ne.tooltip_f = function ()
-        if mp.get_property_bool("eof-reached") then
-            return locale.replay
-        elseif mp.get_property_bool("pause") then
-            return locale.play
-        else
-            return locale.pause
-        end
+
+    ne.tooltip_f = function()
+        if state.eof_reached then return locale.replay end
+        return state.pause and locale.play or locale.pause
     end
-    ne.content = function ()
-        if mp.get_property_bool("eof-reached") then
-            return icons.replay
-        elseif mp.get_property_bool("pause") then
-            return icons.play
-        else
-            return icons.pause
-        end
+
+    ne.content = function()
+        if state.eof_reached then return icons.replay end
+        return state.pause and icons.play or icons.pause
     end
-    ne.eventresponder["mbtn_left_up"] = function ()
-        if mp.get_property_bool("eof-reached") then
+
+    ne.eventresponder["mbtn_left_up"] = function()
+        if state.eof_reached then
             mp.commandv("seek", 0, "absolute-percent")
             mp.commandv("set", "pause", "no")
         else
             mp.commandv("cycle", "pause")
         end
     end
-    ne.eventresponder["mbtn_right_down"] = function ()
-        mp.command("show-text '" .. (state.file_loop and locale.loop_disable or locale.loop_enable) .. "'")
+
+    ne.eventresponder["mbtn_right_down"] = function()
         state.file_loop = not state.file_loop
         mp.set_property_native("loop-file", state.file_loop)
+        mp.command("show-text '" .. (state.file_loop and locale.loop_enable or locale.loop_disable) .. "'")
     end
 
     --audio_track
@@ -1743,7 +1742,7 @@ local function create_elements()
     ne.enabled = state.audio_track_count > 0
     ne.off = state.audio_track_count == 0
     ne.content = function ()
-        local volume = mp.get_property_number("volume")
+        local volume = state.volume
         local muted = mp.get_property_native("mute")
         if muted then
             return icons.mute
@@ -1758,7 +1757,7 @@ local function create_elements()
     end
     ne.tooltip_style = osc_styles.tooltip
     ne.tooltip_f = function ()
-        local volume = mp.get_property_number("volume", 0)
+        local volume = state.volume or 0
         volume = volume % 1 == 0 and string.format("%.0f", volume) or string.format("%.1f", volume)
         return volume
     end
@@ -1773,7 +1772,7 @@ local function create_elements()
     ne.slider.marker_f = function () return {} end
     ne.slider.seek_ranges_f = function() return nil end
     ne.slider.pos_f = function ()
-        return mp.get_property_number("volume")
+        return state.volume
     end
     ne.slider.tooltip_f = function (pos) return (state.audio_track_count > 0) and math.floor(pos) or "" end
     ne.eventresponder["mouse_move"] = function (element)
@@ -1811,13 +1810,13 @@ local function create_elements()
     --tog_ontop
     ne = new_element("tog_ontop", "button")
     ne.hover_effect = true
-    ne.content = function () return not mp.get_property_bool("ontop") and icons.ontop_on or icons.ontop_off end
+    ne.content = function () return not state.ontop and icons.ontop_on or icons.ontop_off end
     ne.tooltip_style = osc_styles.tooltip
-    ne.tooltip_f = function () return not mp.get_property_bool("ontop") and locale.ontop or locale.ontop_disable end
+    ne.tooltip_f = function () return not state.ontop and locale.ontop or locale.ontop_disable end
     ne.eventresponder["mbtn_left_up"] = function ()
         mp.commandv("cycle", "ontop")
         if state.initial_border == "yes" then
-            if mp.get_property_bool("ontop") then
+            if state.ontop then
                 mp.commandv("set", "border", "no")
             else
                 mp.commandv("set", "border", "yes")
@@ -1834,13 +1833,13 @@ local function create_elements()
     --speed
     ne = new_element("speed", "button")
     ne.content = function()
-        return "x" .. string.format("%g", mp.get_property_number("speed", 1))
+        return "x" .. string.format("%g", state.speed or 1)
     end
     ne.tooltip_style = osc_styles.tooltip
     ne.tooltip_f = locale.speed_control
 
     local function adjust_speed(delta)
-        local new_speed = mp.get_property_number("speed", 1) + delta
+        local new_speed = (state.speed or 1) + delta
         mp.commandv("set", "speed", math.max(0.25, math.min(2, new_speed)))
     end
 
@@ -1895,7 +1894,7 @@ local function create_elements()
         end
     end
     ne.slider.pos_f = function ()
-        if mp.get_property_bool("eof-reached") then return 100 end
+        if state.eof_reached then return 100 end
         return mp.get_property_number("percent-pos")
     end
     ne.slider.tooltip_f = function (pos)
@@ -1927,20 +1926,20 @@ local function create_elements()
     end
     ne.eventresponder["mbtn_left_down"] = function (element)
         element.state.mbtnleft = true
-        element.state.was_paused = mp.get_property_bool("pause")
+        element.state.was_paused = state.pause
         state.playing_and_seeking = false
         mp.commandv("seek", get_slider_value(element), "absolute-percent+exact")
     end
     ne.eventresponder["shift+mbtn_left_down"] = function (element)
         element.state.mbtnleft = true
-        element.state.was_paused = mp.get_property_bool("pause")
+        element.state.was_paused = state.pause
         state.playing_and_seeking = false
         mp.commandv("seek", get_slider_value(element), "absolute-percent")
     end
     ne.eventresponder["mbtn_left_up"] = function (element)
         element.state.mbtnleft = false
         if state.playing_and_seeking then
-            if not element.state.was_paused and not mp.get_property_bool("eof-reached") then
+            if not element.state.was_paused and not state.eof_reached then
                 mp.commandv("cycle", "pause")
             end
             state.playing_and_seeking = false
@@ -1967,7 +1966,7 @@ local function create_elements()
         if element.state.mbtnleft then
             element.state.mbtnleft = false
             if state.playing_and_seeking then
-                if not element.state.was_paused and not mp.get_property_bool("eof-reached") then
+                if not element.state.was_paused and not state.eof_reached then
                     mp.commandv("cycle", "pause")
                 end
                 state.playing_and_seeking = false
@@ -1984,7 +1983,7 @@ local function create_elements()
     ne.enabled = mp.get_property("percent-pos") ~= nil
     ne.slider.marker_f = function () return {} end
     ne.slider.pos_f = function ()
-        if mp.get_property_bool("eof-reached") then return 100 end
+        if state.eof_reached then return 100 end
         return mp.get_property_number("percent-pos")
     end
     ne.slider.tooltip_f = function() return "" end
@@ -2507,9 +2506,7 @@ local function on_duration() request_init() end
 
 local duration_watched = false
 local function update_duration_watch()
-    local want_watch = user_opts.livemarkers and
-                       (mp.get_property_number("chapters", 0) or 0) > 0 and
-                       true or false  -- ensure it's a boolean
+    local want_watch = user_opts.livemarkers and #state.chapter_list > 0
 
     if want_watch ~= duration_watched then
         if want_watch then
@@ -2593,10 +2590,11 @@ mp.observe_property("osd-dimensions", "native", function()
 end)
 mp.observe_property("osd-scale-by-window", "native", request_init_resize)
 mp.observe_property("touch-pos", "native", handle_touch)
-mp.observe_property("mute", "bool", function(_, val)
-    state.mute = val
-    request_tick()
-end)
+observe_cached("volume", request_tick)
+observe_cached("mute", request_tick)
+observe_cached("eof-reached", request_tick)
+observe_cached("ontop", request_tick)
+observe_cached("speed", request_tick)
 mp.observe_property("paused-for-cache", "bool", function(_, val) state.buffering = val end)
 -- ensure compatibility with auto loop scripts
 mp.observe_property("loop-file", "bool", function(_, val)
@@ -2721,12 +2719,12 @@ local function idlescreen_visibility(mode, no_osd)
     request_tick()
 end
 
-mp.observe_property("pause", "bool", function(_, enabled)
+observe_cached("pause", function()
     request_tick()
 
     if user_opts.visibility ~= "never" then
-        state.enabled = enabled
-        if enabled then
+        state.enabled = state.pause
+        if state.pause then
             if user_opts.keeponpause then
                 -- save mode if a temporary change is needed
                 if not state.temp_visibility_mode and user_opts.visibility ~= "always" then
