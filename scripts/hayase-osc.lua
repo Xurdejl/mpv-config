@@ -1622,9 +1622,7 @@ local function create_elements()
     ne.visible = mp.get_property_number("chapter", -1) >= 0
     ne.content = function()
         local chapter_index = mp.get_property_number("chapter", -1)
-        if chapter_index < 0 then
-            return ""
-        end
+        if chapter_index < 0 then return "" end
 
         local chapters = state.chapter_list
         local chapter_data = chapters[chapter_index + 1]
@@ -1873,11 +1871,8 @@ local function create_elements()
     end
     ne.slider.tooltip_f = function (pos)
         local duration = mp.get_property_number("duration")
-        if duration ~= nil and pos ~= nil then
-            return format_time(duration * (pos / 100))
-        else
-            return ""
-        end
+        if duration ~= nil and pos ~= nil then return format_time(duration * (pos / 100)) end
+        return ""
     end
     ne.slider.seek_ranges_f = build_cache_seek_ranges
     ne.eventresponder["mouse_move"] = function (element)
@@ -1887,8 +1882,7 @@ local function create_elements()
             mp.commandv("cycle", "pause")
         end
         local seekto = get_slider_value(element)
-        if element.state.lastseek == nil or
-          element.state.lastseek ~= seekto then
+        if element.state.lastseek == nil or element.state.lastseek ~= seekto then
             local flags = "absolute-percent"
             if not user_opts.seekbarkeyframes then
                 flags = flags .. "+exact"
@@ -1961,31 +1955,7 @@ local function create_elements()
     end
     ne.slider.tooltip_f = function() return "" end
     ne.slider.seek_ranges_f = function()
-        if user_opts.persistent_buffer then
-            if not user_opts.seekrange then
-                return nil
-            end
-            local cache_state = state.demuxer_cache_state
-            if not cache_state then
-                return nil
-            end
-            local duration = mp.get_property_number("duration")
-            if duration == nil or duration <= 0 then
-                return nil
-            end
-            local ranges = cache_state["seekable-ranges"]
-            if #ranges == 0 then
-                return nil
-            end
-            local nranges = {}
-            for _, range in pairs(ranges) do
-                nranges[#nranges + 1] = {
-                    ["start"] = 100 * range["start"] / duration,
-                    ["end"] = 100 * range["end"] / duration,
-                }
-            end
-            return nranges
-        end
+        if user_opts.persistent_buffer then return build_cache_seek_ranges() end
         return nil
     end
 
@@ -2507,11 +2477,7 @@ mp.register_event("file-loaded", function()
     request_tick()
 
     if user_opts.automatickeyframemode then
-       if mp.get_property_number("duration", 0) > user_opts.automatickeyframelimit then
-            user_opts.seekbarkeyframes = true
-       else
-            user_opts.seekbarkeyframes = false
-       end
+        user_opts.seekbarkeyframes = mp.get_property_number("duration", 0) > user_opts.automatickeyframelimit
     end
     if user_opts.osc_on_start then
         show_osc()
@@ -2670,18 +2636,10 @@ end
 
 local function idlescreen_visibility(mode, no_osd)
     if mode == "cycle" then
-        if user_opts.idlescreen then
-            mode = "no"
-        else
-            mode = "yes"
-        end
+        mode = user_opts.idlescreen and "no" or "yes"
     end
 
-    if mode == "yes" then
-        user_opts.idlescreen = true
-    else
-        user_opts.idlescreen = false
-    end
+    user_opts.idlescreen = (mode == "yes")
 
     mp.set_property_native("user-data/osc/idlescreen", user_opts.idlescreen)
 
