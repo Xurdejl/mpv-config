@@ -1714,8 +1714,8 @@ local function create_elements()
     ne.content = icons.audio
     ne.tooltip_style = osc_styles.tooltip
     ne.tooltip_f = function ()
-        local prop = mp.get_property("current-tracks/audio/title") or mp.get_property("current-tracks/audio/lang") or locale.na
-        return (locale.audio .. " " .. mp.get_property_number("aid", "-") .. "/" .. state.audio_track_count .. " [" .. prop .. "]")
+        local prop = mp.get_property("current-tracks/audio/lang") or locale.na
+        return (locale.audio .. " (" .. prop .. ")")
     end
     ne.nothingavailable = locale.no_audio
     bind_mouse_buttons("audio_track")
@@ -1728,8 +1728,8 @@ local function create_elements()
     ne.content = icons.subtitle
     ne.tooltip_style = osc_styles.tooltip
     ne.tooltip_f = function ()
-        local prop = mp.get_property("current-tracks/sub/title") or mp.get_property("current-tracks/sub/lang") or locale.na
-        return (locale.subtitle .. " " .. mp.get_property_number("sid", "-") .. "/" .. state.sub_track_count .. " [" .. prop .. "]")
+        local lang = mp.get_property("current-tracks/sub/lang") or locale.na
+        return (locale.subtitle .. " (" .. lang .. ")")
     end
     ne.nothingavailable = locale.no_subs
     bind_mouse_buttons("sub_track")
