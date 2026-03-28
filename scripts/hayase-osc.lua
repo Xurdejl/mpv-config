@@ -86,11 +86,9 @@ local user_opts = {
 
     -- Mouse commands: chapter_title
     chapter_title_mbtn_left_command = "script-binding select/select-chapter; script-message-to hayase-osc osc-hide",
-    chapter_title_mbtn_mid_command = "",
     chapter_title_mbtn_right_command = "show-text ${chapter-list} 3000",
 
     -- Mouse commands: play_pause
-    play_pause_mbtn_left_command = "cycle pause",
     play_pause_mbtn_mid_command = "cycle-values loop-playlist inf no",
     play_pause_mbtn_right_command = "cycle-values loop-file inf no",
 
@@ -106,15 +104,14 @@ local user_opts = {
 
     -- Mouse commands: vol_ctrl
     vol_ctrl_mbtn_left_command = "no-osd cycle mute",
-    vol_ctrl_mbtn_mid_command = "",
     vol_ctrl_mbtn_right_command = "script-binding select/select-audio-device; script-message-to hayase-osc osc-hide",
     vol_ctrl_wheel_down_command = "no-osd add volume -5",
     vol_ctrl_wheel_up_command = "no-osd add volume 5",
+    volumebar_wheel_down_command = "osd-msg add volume -5",
+    volumebar_wheel_up_command = "osd-msg add volume 5",
 
     -- Mouse commands: menu
     menu_mbtn_left_command = "script-binding select/menu; script-message-to osc osc-hide",
-    menu_mbtn_mid_command = "",
-    menu_mbtn_right_command = "",
 
     -- Mouse commands: audio_track
     audio_track_mbtn_left_command = "script-binding select/select-aid; script-message-to hayase-osc osc-hide",
@@ -132,7 +129,6 @@ local user_opts = {
 
     -- Mouse commands: fullscreen
     fullscreen_mbtn_left_command = "cycle fullscreen",
-    fullscreen_mbtn_mid_command = "",
     fullscreen_mbtn_right_command = "cycle window-maximized",
 }
 
@@ -187,8 +183,6 @@ local locale = {
     chapter = "Chapter",
     ontop = "Pin on top",
     ontop_disable = "Unpin",
-    loop_enable = "Repeat file on",
-    loop_disable = "Repeat file off",
     speed_control = "Playback speed",
     cache = "Cache",
     buffering = "Buffering",
@@ -1525,25 +1519,20 @@ local function osc_visible(visible)
 end
 
 local function bind_mouse_buttons(element_name)
-    for _, button in pairs({"mbtn_left", "mbtn_mid", "mbtn_right"}) do
+    for _, button in ipairs({"mbtn_left", "mbtn_right"}) do
         local command = user_opts[element_name .. "_" .. button .. "_command"]
-
-        if command and command ~= "" then
-            elements[element_name].eventresponder[button .. "_up"] = function ()
-                mp.command(command)
-            end
+        if command ~= nil and command ~= "" and command ~= "ignore" then
+            elements[element_name].eventresponder[button .. "_up"] = function() mp.command(command) end
         end
     end
-
-    if user_opts.scrollcontrols then
-        for _, button in pairs({"wheel_down", "wheel_up"}) do
-            local command = user_opts[element_name .. "_" .. button .. "_command"]
-
-            if command and command ~= "" then
-                elements[element_name].eventresponder[button .. "_press"] = function ()
-                    mp.command(command)
-                end
-            end
+    local command = user_opts[element_name .. "_mbtn_mid_command"]
+    if command ~= nil and command ~= "" and command ~= "ignore" then
+        elements[element_name].eventresponder["mbtn_mid_up"] = function() mp.command(command) end
+    end
+    for _, button in ipairs({"wheel_up", "wheel_down"}) do
+        local command = user_opts[element_name .. "_" .. button .. "_command"]
+        if command ~= nil and command ~= "" and command ~= "ignore" then
+            elements[element_name].eventresponder[button .. "_press"] = function() mp.command(command) end
         end
     end
 end
@@ -1700,11 +1689,7 @@ local function create_elements()
         end
     end
 
-    ne.eventresponder["mbtn_right_down"] = function()
-        state.file_loop = not state.file_loop
-        mp.set_property_native("loop-file", state.file_loop)
-        mp.command("show-text '" .. (state.file_loop and locale.loop_enable or locale.loop_disable) .. "'")
-    end
+    bind_mouse_buttons("play_pause")
 
     --audio_track
     ne = new_element("audio_track", "button")
@@ -1786,16 +1771,7 @@ local function create_elements()
         mp.commandv("osd-msg", "set", "volume", math.floor(pos))
     end
     ne.eventresponder["reset"] = function (element) element.state.lastseek = nil end
-    if user_opts.scrollcontrols then
-        ne.eventresponder["wheel_down_press"] = function ()
-            local command = user_opts["vol_ctrl_wheel_down_command"]
-            if command and command ~= "" then mp.command(command) end
-        end
-        ne.eventresponder["wheel_up_press"] = function ()
-            local command = user_opts["vol_ctrl_wheel_up_command"]
-            if command and command ~= "" then mp.command(command) end
-        end
-    end
+    bind_mouse_buttons("volumebar")
 
     -- fullscreen
     ne = new_element("fullscreen", "button")
