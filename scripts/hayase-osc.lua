@@ -981,7 +981,7 @@ local function render_elements(master_ass)
                                 if dur > 0 then
                                     local ch = get_chapter(slider_pos * dur / 100)
                                     if ch and ch.title and ch.title ~= "" then
-                                        chapter_text = string.format(ch.title)
+                                        chapter_text = ch.title
                                         chapter_width = estimate_text_width(chapter_text, slider_lo.tooltip_style)
                                     end
                                 end
@@ -1842,7 +1842,7 @@ local function create_elements()
     end
 
     ne.eventresponder["mbtn_left_up"] = function() adjust_speed(0.25) end
-    ne.eventresponder["mbtn_right_up"] = function() mp.commandv(-0.25) end
+    ne.eventresponder["mbtn_right_up"] = function() adjust_speed(-0.25) end
     ne.eventresponder["mbtn_mid_up"] = function() mp.set_property("speed", 1) end
     if user_opts.scrollcontrols then
         ne.eventresponder["wheel_up_press"] = function() adjust_speed(0.25) end
