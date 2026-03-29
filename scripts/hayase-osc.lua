@@ -33,7 +33,7 @@ local user_opts = {
 
     title = "${media-title}",              -- title above seekbar format: "${media-title}" or "${filename}"
 
-    timetotal = true,                      -- show total time instead of remaining time
+    timecurrent = true,                    -- show total time instead of remaining time
     timems = false,                        -- show timecodes with milliseconds
 
     window_top_bar = "auto",               -- show OSC window top bar: "auto", "yes", or "no" (borderless/fullscreen)
@@ -238,27 +238,27 @@ end
 
 -- internal states, do not touch
 local state = {
-    show_time = nil,                         -- time of last invocation (last mouse move)
-    touch_time = nil,                        -- time of last invocation (last touch event)
-    touch_points = {},                       -- current touch points
+    show_time = nil,                          -- time of last invocation (last mouse move)
+    touch_time = nil,                         -- time of last invocation (last touch event)
+    touch_points = {},                        -- current touch points
     osc_visible = false,
-    ani_start = nil,                         -- time when the animation started
-    ani_type = nil,                          -- current type of animation
-    animation = nil,                        -- current animation alpha
-    mouse_down_counter = 0,                 -- used for softrepeat
-    active_element = nil,                   -- nil = none, 0 = background, 1+ = see elements[]
-    active_event_source = nil,              -- the "button" that issued the current event
-    tc_right_rem = not user_opts.timetotal, -- if the right timecode should display total or remaining time
-    tc_ms = user_opts.timems,               -- Should the timecodes display their time with milliseconds
+    ani_start = nil,                          -- time when the animation started
+    ani_type = nil,                           -- current type of animation
+    animation = nil,                          -- current animation alpha
+    mouse_down_counter = 0,                   -- used for softrepeat
+    active_element = nil,                     -- nil = none, 0 = background, 1+ = see elements[]
+    active_event_source = nil,                -- the "button" that issued the current event
+    tc_left_rem = not user_opts.timecurrent,  -- if the left timecode should display current or remaining time
+    tc_ms = user_opts.timems,                 -- Should the timecodes display their time with milliseconds
     screen_size_x = nil, screen_size_y = nil, -- last screen-resolution, to detect resolution changes to issue reINITs
-    init_req = false,                        -- is a re-init request pending?
-    margins_req = false,                     -- is a margins update pending?
+    init_req = false,                         -- is a re-init request pending?
+    margins_req = false,                      -- is a margins update pending?
     last_mouse_x = nil, last_mouse_y = nil,   -- last mouse position, to detect significant mouse movement
     last_touch_x = -1, last_touch_y = -1,     -- last touch position
     mouse_in_window = false,
     fullscreen = false,
     tick_timer = nil,
-    tick_last_time = 0,                     -- when the last tick() was run
+    tick_last_time = 0,                       -- when the last tick() was run
     hide_timer = nil,
     demuxer_cache_state = nil,
     idle_active = false,
@@ -374,9 +374,9 @@ local function set_osd(osd, res_x, res_y, text, z)
     osd:update()
 end
 
-local function set_time_styles(timetotal_changed, timems_changed)
-    if timetotal_changed then
-        state.tc_right_rem = not user_opts.timetotal
+local function set_time_styles(timecurrent_changed, timems_changed)
+    if timecurrent_changed then
+        state.tc_left_rem = not user_opts.timecurrent
     end
     if timems_changed then
         state.tc_ms = user_opts.timems
@@ -1379,13 +1379,12 @@ local function layout_default()
     end
 
     -- Time codes width calculation
-    local remsec = mp.get_property_number("playtime-remaining", 0)
     local dur = mp.get_property_number("duration", 0)
-    local show_hours = mp.get_property_number("playback-time", 0) >= 3600
-    local show_remhours = (state.tc_right_rem and remsec >= 3600) or (not state.tc_right_rem and dur >= 3600)
-    local time_codes_width =
-        80 + (state.tc_ms and 50 or 0) + (state.tc_right_rem and 15 or 0) + (show_hours and 20 or 0) +
-        (show_remhours and 20 or 0)
+    local playback_time = mp.get_property_number("playback-time", 0)
+    local show_hours = (state.tc_left_rem and dur or playback_time) >= 3600
+    local show_durhours = dur >= 3600
+    local time_codes_width = 90 + (state.tc_ms and 60 or 0) + (state.tc_left_rem and 15 or 0) +
+        (show_hours and 20 or 0) + (show_durhours and 20 or 0)
 
     -- OSC title
     local title_w = (chapter_index and (osc_geo.w - 50) or (osc_geo.w - 50 - time_codes_width))
@@ -1953,28 +1952,26 @@ local function create_elements()
     ne.visible = mp.get_property_number("duration", 0) > 0
     ne.content = function()
         local playback_time = mp.get_property_number("playback-time", 0)
-
-        -- call request_init() only when needed to update time code width
-        if playback_time then
-            local hour_or_more = playback_time >= 3600
-            if hour_or_more ~= state.playtime_hour_force_init then
-                request_init()
-                state.playtime_hour_force_init = hour_or_more
-            end
-        end
-
         local duration = mp.get_property_number("duration", 0)
+
         if duration <= 0 then return "--:--" end
 
-        local playtime_remaining = state.tc_right_rem and
-            mp.get_property_number("playtime-remaining", 0) or duration
+        -- Trigger re-layout when crossing the 1-hour mark
+        local hour_or_more = playback_time >= 3600
+        if hour_or_more ~= state.playtime_hour_force_init then
+            request_init()
+            state.playtime_hour_force_init = hour_or_more
+        end
 
-        local prefix = state.tc_right_rem and "-" or ""
+        if state.tc_left_rem then
+            local time_remaining = math.max(0, duration - playback_time)
+            return "-" .. format_time(time_remaining) .. " / " .. format_time(duration)
+        end
 
-        return format_time(playback_time) .. " / " .. prefix .. format_time(playtime_remaining)
+        return format_time(playback_time) .. " / " .. format_time(duration)
     end
     ne.eventresponder["mbtn_left_up"] = function()
-        state.tc_right_rem = not state.tc_right_rem
+        state.tc_left_rem = not state.tc_left_rem
     end
     ne.eventresponder["mbtn_right_up"] = function()
         state.tc_ms = not state.tc_ms
@@ -2728,7 +2725,7 @@ end
 opt.read_options(user_opts, "hayase-osc", function(changed)
     validate_user_opts()
     set_osc_styles()
-    set_time_styles(changed.timetotal, changed.timems)
+    set_time_styles(changed.timecurrent, changed.timems)
     if changed.tick_delay or changed.tick_delay_follow_display_fps then
         set_tick_delay("display_fps", mp.get_property_number("display_fps"))
     end
