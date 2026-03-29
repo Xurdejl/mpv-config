@@ -172,9 +172,10 @@ local icons = {
 --- localization
 local locale = {
     idle = "Drop files or URLs to play here",
-    na = "N/A",
+    off = "Off",
+    unknown = "Unknown",
     audio = "Audio",
-    subtitle = "Subtitle",
+    subtitle = "Subtitles",
     no_subs = "No subtitles",
     no_audio = "No audio tracks",
     playlist = "Playlist",
@@ -1480,7 +1481,7 @@ local function layout_default()
         end_x = end_x - 55
     end
 
-    elements.sub_track.visible = state.sub_track_count > 0 and osc_geo.w >= 600
+    elements.sub_track.visible = osc_geo.w >= 600
     if elements.sub_track.visible then
         lo = add_layout("sub_track")
         lo.geometry = {x = end_x, y = ref_y - 38, an = 5, w = 24, h = 24}
@@ -1696,8 +1697,9 @@ local function create_elements()
     ne.content = icons.audio
     ne.tooltip_style = osc_styles.tooltip
     ne.tooltip_f = function ()
-        local prop = mp.get_property("current-tracks/audio/lang") or locale.na
-        return (locale.audio .. " (" .. prop .. ")")
+        local lang = mp.get_property_native("aid") and (mp.get_property("current-tracks/audio/lang") or locale.unknown)
+        or locale.off
+        return (locale.audio .. " (" .. lang .. ")")
     end
     ne.nothingavailable = locale.no_audio
     bind_mouse_buttons("audio_track")
@@ -1710,7 +1712,8 @@ local function create_elements()
     ne.content = icons.subtitle
     ne.tooltip_style = osc_styles.tooltip
     ne.tooltip_f = function ()
-        local lang = mp.get_property("current-tracks/sub/lang") or locale.na
+        local lang = mp.get_property_native("sid") and (mp.get_property("current-tracks/sub/lang") or locale.unknown)
+        or locale.off
         return (locale.subtitle .. " (" .. lang .. ")")
     end
     ne.nothingavailable = locale.no_subs
