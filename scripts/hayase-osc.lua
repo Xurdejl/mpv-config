@@ -288,6 +288,7 @@ local state = {
     file_loop = false,
     slider_pos = 0,
     initial_border = mp.get_property("border"),
+    initial_title_bar = mp.get_property("title-bar"),
     playtime_hour_force_init = false,       -- used to force request_init() once
     playing_and_seeking = false,
     persistent_seekbar_element = nil,
@@ -1776,19 +1777,14 @@ local function create_elements()
     ne.tooltip_style = osc_styles.tooltip
     ne.tooltip_f = function () return not state.ontop and locale.ontop or locale.ontop_disable end
     ne.eventresponder["mbtn_left_up"] = function ()
+        local was_ontop = state.ontop
         mp.commandv("cycle", "ontop")
-        if state.initial_border == "yes" then
-            if state.ontop then
-                mp.commandv("set", "border", "no")
+        if state.initial_border == "yes" and state.initial_title_bar == "yes" then
+            if not was_ontop then
+                mp.commandv("set", "title-bar", "no")
             else
-                mp.commandv("set", "border", "yes")
+                mp.commandv("set", "title-bar", "yes")
             end
-        end
-    end
-    ne.eventresponder["mbtn_right_up"] = function ()
-        mp.commandv("cycle", "ontop")
-        if mp.get_property("border") == "no" then
-            mp.commandv("set", "border", "yes")
         end
     end
 
