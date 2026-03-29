@@ -45,7 +45,6 @@ local user_opts = {
     audio_button = false,                  -- show audio track button (only if more than 1 audio track exists)
     cache_info = false,                    -- show cached time information
     cache_info_speed = false,              -- show cache speed per second
-    scrollcontrols = true,                 -- allow scrolling when hovering certain OSC elements
 
     seek_handle_size = 0,                  -- size ratio of the progress bar handle (range: 0 ~ 1)
     seekrange = true,                      -- show seek range overlay
@@ -1723,24 +1722,17 @@ local function create_elements()
     ne.enabled = state.audio_track_count > 0
     ne.off = state.audio_track_count == 0
     ne.content = function ()
-        local volume = state.volume
-        local muted = mp.get_property_native("mute")
-        if muted then
-            return icons.mute
-        end
+        local volume = state.volume or 0
+        if state.mute then return icons.mute end
 
-        if volume == 0 then
-            return icons.volume[1]
-        else
-            local icon_index = math.min(4, math.ceil((volume / 100) * 3) + 1)
-            return icons.volume[icon_index]
-        end
+        -- index 1 = silent, 2-4 = low to high volume
+        local icon_index = math.min(4, math.ceil((volume / 100) * 3) + 1)
+        return icons.volume[icon_index]
     end
     ne.tooltip_style = osc_styles.tooltip
     ne.tooltip_f = function ()
         local volume = state.volume or 0
-        volume = volume % 1 == 0 and string.format("%.0f", volume) or string.format("%.1f", volume)
-        return volume
+        return string.format("%.0f", math.floor(volume + 0.5))
     end
     bind_mouse_buttons("vol_ctrl")
 
@@ -1818,10 +1810,8 @@ local function create_elements()
     ne.eventresponder["mbtn_left_up"] = function() adjust_speed(0.25) end
     ne.eventresponder["mbtn_right_up"] = function() adjust_speed(-0.25) end
     ne.eventresponder["mbtn_mid_up"] = function() mp.set_property("speed", 1) end
-    if user_opts.scrollcontrols then
-        ne.eventresponder["wheel_up_press"] = function() adjust_speed(0.25) end
-        ne.eventresponder["wheel_down_press"] = function() adjust_speed(-0.25) end
-    end
+    ne.eventresponder["wheel_up_press"] = function() adjust_speed(0.25) end
+    ne.eventresponder["wheel_down_press"] = function() adjust_speed(-0.25) end
 
     -- cache info
     ne = new_element("cache_info", "button")
@@ -1939,10 +1929,6 @@ local function create_elements()
                 state.playing_and_seeking = false
             end
         end
-    end
-    if user_opts.scrollcontrols then
-        ne.eventresponder["wheel_up_press"] = function () mp.commandv("seek", 10) end
-        ne.eventresponder["wheel_down_press"] = function () mp.commandv("seek", -10) end
     end
 
     --persistent seekbar
