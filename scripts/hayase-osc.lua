@@ -683,8 +683,16 @@ local function prepare_elements()
 
         local elem_geo = element.layout.geometry
 
+        -- calculate title and chapter hitbox
+        local hitbox_w = elem_geo.w
+        if (element.name == "title" or element.name == "chapter_title") and type(element.content) == "function" then
+            local text_w = estimate_text_width(element.content(), osc_styles[element.name])
+
+            if text_w > 0 then hitbox_w = math.min(text_w, elem_geo.w) end
+        end
+
         -- Calculate the hitbox
-        local b_x1, b_y1, b_x2, b_y2 = get_hitbox_coords(elem_geo.x, elem_geo.y, elem_geo.an, elem_geo.w, elem_geo.h)
+        local b_x1, b_y1, b_x2, b_y2 = get_hitbox_coords(elem_geo.x, elem_geo.y, elem_geo.an, hitbox_w, elem_geo.h)
         element.hitbox = {x1 = b_x1, y1 = b_y1, x2 = b_x2, y2 = b_y2}
 
         local style_ass = assdraw.ass_new()
