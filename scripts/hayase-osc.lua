@@ -28,9 +28,6 @@ local user_opts = {
     fadeduration = 200,                    -- fade-out duration (in ms), set to 0 for no fade
     minmousemove = 0,                      -- minimum mouse movement (in pixels) required to show OSC
 
-    scalewindowed = 1,                     -- osc scale factor when windowed
-    scalefullscreen = 1,                   -- osc scale factor when fullscreen
-
     title = "${media-title}",              -- title above seekbar format: "${media-title}" or "${filename}"
 
     timecurrent = true,                    -- show total time instead of remaining time
@@ -131,7 +128,6 @@ local osc_param = {                  -- calculated by osc_init()
     playresy = 0,                    -- canvas size Y
     playresx = 0,                    -- canvas size X
     display_aspect = 1,
-    unscaled_y = 0,
     areas = {},
     video_margins = {
         l = 0, r = 0, t = 0, b = 0,  -- left/right/top/bottom
@@ -1557,10 +1553,8 @@ end
 
 local function setup_canvas()
     local _, display_h, display_aspect = mp.get_osd_size()
-    local scale = state.fullscreen and user_opts.scalefullscreen or user_opts.scalewindowed
 
-    osc_param.unscaled_y = display_h
-    osc_param.playresy = osc_param.unscaled_y / scale
+    osc_param.playresy = display_h
     if display_aspect > 0 then
         osc_param.display_aspect = display_aspect
     end
