@@ -274,6 +274,7 @@ local state = {
     new_file_flag = false,                  -- flag to detect new file starts
     temp_visibility_mode = nil,             -- store temporary visibility mode state
     chapter_list = {},                      -- sorted by time
+    chapter = -1,                           -- current chapter index
     visibility_modes = {},                  -- visibility_modes to cycle through
     mute = false,
     pause = false,
@@ -1296,7 +1297,7 @@ end
 --
 -- Default layout
 local function layout_default()
-    local chapter_index = mp.get_property_number("chapter", -1) >= 0
+    local chapter_index = (state.chapter or -1) >= 0
     local osc_height_offset =
         ((user_opts.title_mbtn_left_command == "" and user_opts.title_mbtn_right_command == "") and 25 or 0) +
         (((user_opts.chapter_title_mbtn_left_command == "" and user_opts.chapter_title_mbtn_right_command == "") or not chapter_index) and 10 or 0)
@@ -1617,9 +1618,9 @@ local function create_elements()
 
     -- Chapter title (above seekbar)
     ne = new_element("chapter_title", "button")
-    ne.visible = mp.get_property_number("chapter", -1) >= 0
+    ne.visible = (state.chapter or -1) >= 0
     ne.content = function()
-        local chapter_index = mp.get_property_number("chapter", -1)
+        local chapter_index = (state.chapter or -1)
         if chapter_index < 0 then return "" end
 
         local chapters = state.chapter_list
@@ -2514,6 +2515,7 @@ observe_cached("mute", request_tick)
 observe_cached("eof-reached", request_tick)
 observe_cached("ontop", request_tick)
 observe_cached("speed", request_tick)
+observe_cached("chapter", request_tick)
 mp.observe_property("paused-for-cache", "bool", function(_, val) state.buffering = val end)
 -- ensure compatibility with auto loop scripts
 mp.observe_property("loop-file", "bool", function(_, val)
