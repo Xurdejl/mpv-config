@@ -2279,6 +2279,7 @@ local function render()
 
     -- autohide
     if state.show_time ~= nil and get_hidetimeout() >= 0 then
+        if state.hide_timer then state.hide_timer.timeout = math.huge end
         local timeout = state.show_time + (get_hidetimeout() / 1000) - now
         if timeout <= 0 and get_touchtimeout() <= 0 then
             if state.active_element == nil and not mouse_over_osc then
