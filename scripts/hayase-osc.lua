@@ -36,7 +36,6 @@ local user_opts = {
     window_top_bar = "auto",               -- show OSC window top bar: "auto", "yes", or "no" (borderless/fullscreen)
     window_title = false,                  -- show window title in borderless/fullscreen mode
     window_controls = true,                -- show window controls (close, minimize, maximize) in borderless/fullscreen
-    windowcontrols_title = "${media-title}", -- same as title but for windowcontrols
 
     speed_button = false,                  -- show speed control button
     audio_button = false,                  -- show audio track button (only if more than 1 audio track exists)
@@ -264,7 +263,6 @@ local state = {
     input_enabled = true,
     showhide_enabled = false,
     windowcontrols_buttons = false,
-    windowcontrols_title = false,
     dmx_cache = 0,
     border = true,
     window_maximized = false,
@@ -1602,7 +1600,7 @@ local function create_elements()
     -- Window Title
     ne = new_element("windowtitle", "button")
     ne.content = function ()
-        local title = mp.command_native({"expand-text", user_opts.windowcontrols_title}) or ""
+        local title = mp.command_native({"expand-text", mp.get_property("title")})
         title = title:gsub("\n", " ")
         return title ~= "" and mp.command_native({"escape-ass", title}) or "mpv"
     end
@@ -2242,58 +2240,28 @@ local function render()
     --mouse input area
     local mouse_over_osc = false
 
-    for _,cords in ipairs(osc_param.areas["input"]) do
-        if state.osc_visible then -- activate only when OSC is actually visible
-            set_virt_mouse_area(cords.x1, cords.y1, cords.x2, cords.y2, "input")
-        end
-        if state.osc_visible ~= state.input_enabled then
-            if state.osc_visible then
-                mp.enable_key_bindings("input")
-            else
-                mp.disable_key_bindings("input")
+    local function update_area(area_name, visible, enabled_key, enable_fn)
+        if not osc_param.areas[area_name] then return end
+        for _, cords in ipairs(osc_param.areas[area_name]) do
+            if visible then
+                set_virt_mouse_area(cords.x1, cords.y1, cords.x2, cords.y2, area_name)
             end
-            state.input_enabled = state.osc_visible
-        end
-
-        if mouse_hit_coords(cords.x1, cords.y1, cords.x2, cords.y2) then
-            mouse_over_osc = true
-        end
-    end
-
-    if osc_param.areas["window-controls"] then
-        for _,cords in ipairs(osc_param.areas["window-controls"]) do
-            if state.osc_visible then -- activate only when OSC is actually visible
-                set_virt_mouse_area(cords.x1, cords.y1, cords.x2, cords.y2, "window-controls")
-                mp.enable_key_bindings("window-controls")
-            else
-                mp.disable_key_bindings("window-controls")
+            if visible ~= state[enabled_key] then
+                if visible then enable_fn() else mp.disable_key_bindings(area_name) end
+                state[enabled_key] = visible
             end
-
             if mouse_hit_coords(cords.x1, cords.y1, cords.x2, cords.y2) then
                 mouse_over_osc = true
             end
         end
     end
 
-    if osc_param.areas["window-controls-title"] then
-        for _,cords in ipairs(osc_param.areas["window-controls-title"]) do
-            if state.osc_visible then -- activate only when OSC is actually visible
-                set_virt_mouse_area(cords.x1, cords.y1, cords.x2, cords.y2, "window-controls-title")
-            end
-            if state.osc_visible ~= state.windowcontrols_title then
-                if state.osc_visible then
-                    mp.enable_key_bindings("window-controls-title", "allow-vo-dragging")
-                else
-                    mp.disable_key_bindings("window-controls-title")
-                end
-                state.windowcontrols_title = state.osc_visible
-            end
-
-            if mouse_hit_coords(cords.x1, cords.y1, cords.x2, cords.y2) then
-                mouse_over_osc = true
-            end
-        end
-    end
+    update_area("input", state.osc_visible, "input_enabled",
+        function() mp.enable_key_bindings("input") end)
+    update_area("window-controls", state.osc_visible, "windowcontrols_buttons",
+        function() mp.enable_key_bindings("window-controls") end)
+    update_area("window-controls-title", state.osc_visible, "windowcontrols_title",
+        function() mp.enable_key_bindings("window-controls-title", "allow-vo-dragging") end)
 
     -- autohide
     if state.show_time ~= nil and get_hidetimeout() >= 0 then
@@ -2610,7 +2578,10 @@ local function visibility_mode(mode, no_osd)
     -- will just stay disabled.
     mp.disable_key_bindings("input")
     mp.disable_key_bindings("window-controls")
+    mp.disable_key_bindings("window-controls-title")
     state.input_enabled = false
+    state.windowcontrols_buttons = false
+    state.windowcontrols_title = false
 
     update_margins()
     request_tick()
