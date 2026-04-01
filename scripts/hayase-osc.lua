@@ -28,7 +28,7 @@ local user_opts = {
     fadeduration = 200,                    -- fade-out duration (in ms), set to 0 for no fade
     minmousemove = 0,                      -- minimum mouse movement (in pixels) required to show OSC
 
-    title = "${media-title}",              -- title above seekbar format: "${media-title}" or "${filename}"
+    title = "${?demuxer-via-network==yes:${media-title}}${?demuxer-via-network==no:${filename/no-ext}}", -- title above seekbar format: "${media-title}" or "${filename}"
 
     timecurrent = true,                    -- show total time instead of remaining time
     timems = false,                        -- show timecodes with milliseconds
