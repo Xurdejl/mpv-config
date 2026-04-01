@@ -263,6 +263,7 @@ local state = {
     input_enabled = true,
     showhide_enabled = false,
     windowcontrols_buttons = false,
+    wc_visible = false,
     dmx_cache = 0,
     border = true,
     window_maximized = false,
@@ -876,6 +877,13 @@ local function render_elements(master_ass)
 
     local function render_element(n)
         local element = elements[n]
+
+        if element.is_wc then
+            if not state.wc_visible then return end
+        else
+            if not state.osc_visible then return end
+        end
+
         local style_ass = assdraw.ass_new()
         style_ass:merge(element.style_ass)
         ass_append_alpha(style_ass, element.layout.alpha, 0)
@@ -1194,6 +1202,7 @@ local function new_element(name, type)
     elements[name].styledown = (type == "button")
     elements[name].hover_effect = false
     elements[name].state = {}
+    elements[name].is_wc = false
 
     if type == "slider" then
         elements[name].slider = {min = {value = 0}, max = {value = 100}}
@@ -1573,6 +1582,7 @@ local function create_elements()
     -- Window controls
     -- Close: 🗙
     ne = new_element("close", "button")
+    ne.is_wc = true
     ne.hover_effect = true
     ne.hover_color = "#E81123"
     ne.hover_alpha = 0x00
@@ -1583,6 +1593,7 @@ local function create_elements()
 
     -- Minimize: 🗕
     ne = new_element("minimize", "button")
+    ne.is_wc = true
     ne.hover_effect = true
     ne.hover_radius = 0
     ne.hover_pad = 0
@@ -1591,6 +1602,7 @@ local function create_elements()
 
     -- Maximize: 🗖 /🗗
     ne = new_element("maximize", "button")
+    ne.is_wc = true
     ne.hover_effect = true
     ne.hover_radius = 0
     ne.hover_pad = 0
@@ -1599,6 +1611,7 @@ local function create_elements()
 
     -- Window Title
     ne = new_element("windowtitle", "button")
+    ne.is_wc = true
     ne.content = function ()
         local title = mp.command_native({"expand-text", mp.get_property("title")})
         title = title:gsub("\n", " ")
@@ -1995,6 +2008,7 @@ end
 local function show_osc()
     -- show when disabled can happen (e.g. mouse_move) due to async/delayed unbinding
     if not state.enabled then return end
+    if state.idle_active then return end
 
     msg.trace("show_osc")
     --remember last time of invocation (mouse move)
@@ -2258,9 +2272,9 @@ local function render()
 
     update_area("input", state.osc_visible, "input_enabled",
         function() mp.enable_key_bindings("input") end)
-    update_area("window-controls", state.osc_visible, "windowcontrols_buttons",
+    update_area("window-controls", state.wc_visible, "windowcontrols_buttons",
         function() mp.enable_key_bindings("window-controls") end)
-    update_area("window-controls-title", state.osc_visible, "windowcontrols_title",
+    update_area("window-controls-title", state.wc_visible, "windowcontrols_title",
         function() mp.enable_key_bindings("window-controls-title", "allow-vo-dragging") end)
 
     -- autohide
@@ -2292,7 +2306,7 @@ local function render()
     local ass = assdraw.ass_new()
 
     -- actual OSC
-    if state.osc_visible then
+    if state.osc_visible or state.wc_visible then
         render_elements(ass)
     end
 
@@ -2351,17 +2365,26 @@ tick = function()
     if not state.enabled then return end
 
     if state.idle_active then
-        render_wipe(state.osd)
         -- render idle message
         msg.trace("idle message")
         if user_opts.idlescreen then
             render_logo()
         end
 
-        if state.showhide_enabled then
-            mp.disable_key_bindings("showhide")
-            mp.disable_key_bindings("showhide_wc")
-            state.showhide_enabled = false
+        -- hide main OSC but keep window controls functional
+        if state.osc_visible then
+            osc_visible(false)
+        end
+        if window_controls_enabled() then
+            state.wc_visible = true
+            render()
+        else
+            render_wipe(state.osd)
+            if state.showhide_enabled then
+                mp.disable_key_bindings("showhide")
+                mp.disable_key_bindings("showhide_wc")
+                state.showhide_enabled = false
+            end
         end
     else
         if state.no_video and state.file_loaded and user_opts.audioonlyscreen then
@@ -2369,6 +2392,8 @@ tick = function()
         else
             render_wipe(state.logo_osd)
         end
+        -- keep wc_visible in sync with osc_visible during normal playback
+        state.wc_visible = state.osc_visible
         -- render the OSC
         render()
     end
@@ -2376,9 +2401,9 @@ tick = function()
     state.tick_last_time = mp.get_time()
 
     if state.ani_type ~= nil then
-        -- state.ani_start can be nil - animation should now start, or it can
-        -- be a timestamp when it started. state.idle_active has no animation.
-        if not state.idle_active and
+        -- allow fade-out animation to continue during idle
+        local allow_idle = state.ani_type == "out"
+        if (allow_idle or not state.idle_active) and
            (not state.ani_start or
             mp.get_time() < 1 + state.ani_start + user_opts.fadeduration/1000)
         then
@@ -2582,6 +2607,7 @@ local function visibility_mode(mode, no_osd)
     state.input_enabled = false
     state.windowcontrols_buttons = false
     state.windowcontrols_title = false
+    state.wc_visible = false
 
     update_margins()
     request_tick()
