@@ -64,7 +64,6 @@ local user_opts = {
     seekbarfg_color = "#FFFFFF",           -- color of the seekbar progress and handle
     seekbarbg_color = "#D9D9D9",           -- color of the remaining seekbar
     volumebar_match_seek_color = false,      -- match volume bar color with seekbar color
-    held_element_color = "#999999",        -- color of the element when held down (pressed)
     thumbnail_border_color = "#FFFFFF",    -- color of the border for thumbnails (with thumbfast)
     thumbnail_border_outline = "#FFFFFF",  -- color of the border outline for thumbnails
 
@@ -222,7 +221,6 @@ local function set_osc_styles()
         volumebar_bg = "{\\blur0\\bord0\\1c&H999999&}",
         volumebar_fg = "{\\blur1\\bord1\\1c&H" .. osc_color_convert(user_opts.buttons_color) .. "&}",
         buttons = "{\\blur0\\bord0\\1c&H" .. osc_color_convert(user_opts.buttons_color) .. "&\\3c&HFFFFFF&\\fs" .. buttons_size .. "\\fn" .. icon_font .. "}",
-        element_down = "{\\1c&H" .. osc_color_convert(user_opts.held_element_color) .. "&}",
         hover_bg = "{\\blur0\\bord0\\1c&HFAFAFA&}"
     }
 end
@@ -894,8 +892,6 @@ local function render_elements(master_ass)
                 element.eventresponder.render(element)
             end
             if mouse_hit(element) then
-                -- mouse down styling
-                if element.styledown then style_ass:append(osc_styles.element_down) end
                 if element.softrepeat and state.mouse_down_counter >= 15
                     and state.mouse_down_counter % 5 == 0 then
                     element.eventresponder[state.active_event_source.."_down"](element)
@@ -914,24 +910,32 @@ local function render_elements(master_ass)
             )
             if mouse_hit(element) and is_clickable and element.enabled then
                 local hx1, hy1, hx2, hy2 = get_element_hitbox(element)
-                local pad = element.hover_pad ~= nil and element.hover_pad or 10
+                local is_held = state.active_element == n and mouse_hit(element)
+
                 elem_ass:append("{}")
                 elem_ass:new_event()
                 elem_ass:pos(0, 0)
                 elem_ass:an(7)
-                local hover_base_alpha = element.hover_alpha or 0xCC
-                ass_append_alpha(elem_ass, {[1] = hover_base_alpha, [2] = 255, [3] = 255, [4] = 255}, element.layout.alpha[1])
-                local hover_style = element.hover_color
-                    and "{\\blur0\\bord0\\1c&H" .. osc_color_convert(element.hover_color) .. "&}"
-                    or osc_styles.hover_bg
-                elem_ass:append(hover_style)
+
+                local bg_color = osc_styles.hover_bg
+                local override_color = (is_held and element.held_color) or element.hover_color
+
+                if override_color then
+                    bg_color = "{\\blur0\\bord0\\1c&H" .. osc_color_convert(override_color) .. "&}"
+                end
+
+                ass_append_alpha(elem_ass, {[1] = element.hover_alpha or 0xCC, [2] = 255, [3] = 255, [4] = 255}, element.layout.alpha[1])
+                elem_ass:append(bg_color)
+
+                local pad = element.hover_pad or (element.is_wc and 0 or 10)
+                local hover_radius = element.hover_radius or (element.is_wc and 0 or 6)
+                local shrink = (is_held and not element.is_wc) and 0.5 or 0
+
                 elem_ass:draw_start()
-                local hover_radius = element.hover_radius ~= nil and element.hover_radius or 6
-                elem_ass:round_rect_cw(hx1 - pad, hy1 - pad, hx2 + pad, hy2 + pad, hover_radius)
+                elem_ass:round_rect_cw(hx1 - pad + shrink, hy1 - pad + shrink, hx2 + pad - shrink, hy2 + pad - shrink, hover_radius)
                 elem_ass:draw_stop()
             end
         end
-
         elem_ass:merge(style_ass)
 
         if element.type ~= "button" then
@@ -1107,6 +1111,11 @@ local function render_elements(master_ass)
                 buttontext = string.format("{\\fscx%f}", (maxchars/#buttontext)*100) .. buttontext
             end
 
+            local is_held = state.active_element == n and mouse_hit(element)
+            if is_held and not element.hover_effect then
+                buttontext = "{\\alpha&H80&}" .. buttontext
+            end
+
             elem_ass:append(buttontext)
 
             -- add tooltip for button elements
@@ -1123,7 +1132,7 @@ local function render_elements(master_ass)
                         tooltiplabel = element.nothingavailable
                     end
 
-                    local pad = element.hover_pad ~= nil and element.hover_pad or 10
+                    local pad = element.hover_pad or (element.is_wc and 0 or 10)
 
                     local an = 2
                     local ty = element.hitbox.y1 - pad
@@ -1199,7 +1208,6 @@ local function new_element(name, type)
     elements[name].visible = true
     elements[name].enabled = true
     elements[name].softrepeat = false
-    elements[name].styledown = (type == "button")
     elements[name].hover_effect = false
     elements[name].state = {}
     elements[name].is_wc = false
@@ -1585,9 +1593,8 @@ local function create_elements()
     ne.is_wc = true
     ne.hover_effect = true
     ne.hover_color = "#E81123"
-    ne.hover_alpha = 0x00
-    ne.hover_radius = 0
-    ne.hover_pad = 0
+    ne.held_color = "#E63A48"
+    ne.hover_alpha = 0
     ne.content = icons.window.close
     ne.eventresponder["mbtn_left_up"] = function () mp.commandv("quit") end
 
@@ -1595,8 +1602,8 @@ local function create_elements()
     ne = new_element("minimize", "button")
     ne.is_wc = true
     ne.hover_effect = true
-    ne.hover_radius = 0
-    ne.hover_pad = 0
+    ne.hover_color = "#FFFFFF"
+    ne.held_color = "#D9D9D9"
     ne.content = icons.window.minimize
     ne.eventresponder["mbtn_left_up"] = function () mp.commandv("cycle", "window-minimized") end
 
@@ -1604,8 +1611,8 @@ local function create_elements()
     ne = new_element("maximize", "button")
     ne.is_wc = true
     ne.hover_effect = true
-    ne.hover_radius = 0
-    ne.hover_pad = 0
+    ne.hover_color = "#FFFFFF"
+    ne.held_color = "#D9D9D9"
     ne.content = (state.window_maximized or state.fullscreen) and icons.window.unmaximize or icons.window.maximize
     ne.eventresponder["mbtn_left_up"] = function () mp.commandv("cycle", (state.fullscreen and "fullscreen" or "window-maximized")) end
 
@@ -2696,8 +2703,8 @@ local function validate_user_opts()
 
     local colors = {
         user_opts.background_color, user_opts.seekbarfg_color, user_opts.seekbarbg_color,
-        user_opts.title_color, user_opts.held_element_color, user_opts.thumbnail_border_color,
-        user_opts.chapter_title_color, user_opts.thumbnail_border_outline
+        user_opts.title_color, user_opts.thumbnail_border_color, user_opts.chapter_title_color,
+        user_opts.thumbnail_border_outline
     }
 
     for _, color in pairs(colors) do
