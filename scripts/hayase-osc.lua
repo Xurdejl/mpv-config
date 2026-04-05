@@ -45,7 +45,6 @@ local user_opts = {
     seek_handle_size = 0,                  -- size ratio of the progress bar handle (range: 0 ~ 1)
     seekrange = true,                      -- show seek range overlay
     seekrangealpha = 150,                  -- transparency of the seek range
-    livemarkers = true,                    -- update chapter markers on the seekbar when duration changes
     seekbarkeyframes = false,              -- use keyframes when dragging the seekbar
     automatickeyframemode = true,          -- automatically set keyframes for the seekbar based on video length
     automatickeyframelimit = 600,          -- videos longer than this (in seconds) will have keyframes on the seekbar
@@ -487,30 +486,97 @@ local function mouse_hit(element)
     return mouse_hit_coords(get_element_hitbox(element))
 end
 
-local function get_slider_ele_pos_for(element, val)
-    local ele_pos = scale_value(
-        element.slider.min.value, element.slider.max.value,
-        element.slider.min.ele_pos, element.slider.max.ele_pos,
-        val)
+local seekbar_segments_cache = {w = nil, result = {}}
 
-    return math.min(element.slider.max.ele_pos, math.max(element.slider.min.ele_pos, ele_pos))
+local function get_seekbar_segments(w)
+    -- Use cached segments if width hasn't changed
+    if seekbar_segments_cache.w == w then
+        return seekbar_segments_cache.result
+    end
+
+    local duration = mp.get_property_number("duration", 0)
+    local chapters = state.chapter_list
+
+    if duration <= 0 or not chapters or #chapters == 0 then
+        local result = {{x = 0, w = w, start_p = 0, end_p = 100}}
+        seekbar_segments_cache.w = w
+        seekbar_segments_cache.result = result
+        return result
+    end
+
+    local times = {0}
+    for _, c in ipairs(chapters) do
+        if c.time > 0 and c.time < duration then -- skip chapter at 0:00
+            table.insert(times, c.time)
+        end
+    end
+    table.insert(times, duration)
+
+    local gap = 4
+    local num_segs = #times - 1
+    local total_gap = (num_segs - 1) * gap
+    local avail_w = w - total_gap
+
+    local segments = {}
+    local current_x = 0
+    for i = 1, num_segs do
+        local t_start = times[i]
+        local t_end = times[i+1]
+        local seg_w = ((t_end - t_start) / duration) * avail_w
+
+        table.insert(segments, {
+            x = current_x, w = seg_w,
+            start_p = (t_start / duration) * 100,
+            end_p = (t_end / duration) * 100
+        })
+        current_x = current_x + seg_w + gap
+    end
+
+    seekbar_segments_cache.w = w
+    seekbar_segments_cache.result = segments
+    return segments
 end
 
--- translates global (mouse) coordinates to value
-local function get_slider_value_at(element, glob_pos)
-    if element then
-        local val = scale_value(
-            element.slider.min.glob_pos, element.slider.max.glob_pos,
-            element.slider.min.value, element.slider.max.value,
-            glob_pos)
+local function get_slider_ele_pos_for(element, val)
+    if element.name ~= "seekbar" and element.name ~= "persistent_seekbar" then
+        local ele_pos = scale_value(element.slider.min.value, element.slider.max.value, element.slider.min.ele_pos, element.slider.max.ele_pos, val)
+        return math.min(element.slider.max.ele_pos, math.max(element.slider.min.ele_pos, ele_pos))
+    end
 
+    local segments = get_seekbar_segments(element.layout.geometry.w)
+    for _, seg in ipairs(segments) do
+        if val >= seg.start_p and val <= seg.end_p then
+            local ratio = (seg.end_p == seg.start_p) and 0 or (val - seg.start_p) / (seg.end_p - seg.start_p)
+            return seg.x + ratio * seg.w
+        end
+    end
+    -- val is before the first segment or past the last
+    return val < segments[1].start_p and segments[1].x or (segments[#segments].x + segments[#segments].w)
+end
+
+local function get_slider_value_at(element, glob_pos)
+    if not element then return 0 end
+    if element.name ~= "seekbar" and element.name ~= "persistent_seekbar" then
+        local val = scale_value(element.slider.min.glob_pos, element.slider.max.glob_pos, element.slider.min.value, element.slider.max.value, glob_pos)
         return math.min(element.slider.max.value, math.max(element.slider.min.value, val))
     end
-    -- fall back incase of loading errors
-    return 0
+
+    local local_x = glob_pos - element.hitbox.x1
+    local segments = get_seekbar_segments(element.layout.geometry.w)
+
+    for i, seg in ipairs(segments) do
+        if local_x >= seg.x and local_x <= seg.x + seg.w then
+            local ratio = (seg.w == 0) and 0 or (local_x - seg.x) / seg.w
+            return seg.start_p + ratio * (seg.end_p - seg.start_p)
+        end
+        -- Mouse is in the gap between segments: snap to nearest boundary
+        if i < #segments and local_x > seg.x + seg.w and local_x < segments[i+1].x then
+            return (local_x - (seg.x + seg.w)) < (segments[i+1].x - local_x) and seg.end_p or segments[i+1].start_p
+        end
+    end
+    return local_x < segments[1].x and segments[1].start_p or segments[#segments].end_p
 end
 
--- get value at current mouse position
 local function get_slider_value(element)
     return get_slider_value_at(element, get_virt_mouse_pos())
 end
@@ -657,6 +723,25 @@ end
 --
 local elements = {}
 
+-- Helper to draw rounded/flat rectangles
+local function draw_rect(ass, x1, y1, x2, y2, r_left, r_right, r)
+    local w = x2 - x1
+    if w <= 0.05 then return end
+    r = r or 0
+
+    local current_r = r
+    if w < current_r * 2 then current_r = w / 2 end
+
+    if current_r > 0 and (r_left or r_right) then
+        ass:round_rect_cw(x1, y1, x2, y2, current_r)
+        -- Overlap flat rectangles to square off the sides we don't want rounded
+        if not r_left then ass:rect_cw(x1, y1, x1 + current_r, y2) end
+        if not r_right then ass:rect_cw(x2 - current_r, y1, x2, y2) end
+    else
+        ass:rect_cw(x1, y1, x2, y2)
+    end
+end
+
 local function prepare_elements()
     -- remove elements without layout or invisible
     local elements2 = {}
@@ -672,6 +757,9 @@ local function prepare_elements()
     end
 
     table.sort(elements, elem_compare)
+
+    -- Invalidate segment cache (called on init which covers width/chapter changes)
+    seekbar_segments_cache.w = nil
 
     for _,element in pairs(elements) do
 
@@ -705,7 +793,13 @@ local function prepare_elements()
         if element.type == "box" then
             --draw box
             static_ass:draw_start()
-            if element.layout.box.hexagon then
+            if element.name == "seekbarbg" then
+                local segments = get_seekbar_segments(elem_geo.w)
+                local r = element.layout.box.radius
+                for i, seg in ipairs(segments) do
+                    draw_rect(static_ass, seg.x, 0, seg.x + seg.w, elem_geo.h, (i == 1), (i == #segments), r)
+                end
+            elseif element.layout.box.hexagon then
                 static_ass:hexagon_cw(0, 0, elem_geo.w, elem_geo.h, element.layout.box.radius, 0)
             else
                 static_ass:round_rect_cw(0, 0, elem_geo.w, elem_geo.h, element.layout.box.radius)
@@ -725,25 +819,6 @@ local function prepare_elements()
             -- a hack which prepares the whole slider area to allow center placements such like an=5
             static_ass:rect_cw(0, 0, elem_geo.w, elem_geo.h)
             static_ass:rect_ccw(0, 0, elem_geo.w, elem_geo.h)
-            -- marker nibbles
-            if element.slider.marker_f ~= nil and slider_lo.gap > 0 then
-                local markers = element.slider.marker_f()
-                for _, marker in pairs(markers) do
-                    if marker >= element.slider.min.value and
-                    marker <= element.slider.max.value then
-                        local s = get_slider_ele_pos_for(element, marker)
-                        if slider_lo.gap > 5 then
-                            -- top triangle nibble only
-                            static_ass:move_to(s - 3, slider_lo.gap - 5)
-                            static_ass:line_to(s + 3, slider_lo.gap - 5)
-                            static_ass:line_to(s, slider_lo.gap - 1)
-                        else
-                            -- small 2x1px nibble at top
-                            static_ass:rect_cw(s - 1, 0, s + 1, slider_lo.gap)
-                        end
-                    end
-                end
-            end
         end
 
         element.static_ass = static_ass
@@ -779,24 +854,16 @@ local function get_chapter(possec)
     end
 end
 
--- Draws a handle on the seekbar according to user_opts
--- Returns handle position and radius
-local function draw_seekbar_handle(element, elem_ass, override_alpha)
+-- Draws a handle on the seekbar according to user_opts.
+-- Returns the handle's x position and radius; both are 0 when no handle is drawn.
+local function draw_seekbar_handle(element, elem_ass)
     local pos = element.slider.pos_f()
-    if not pos then
-        return 0, 0
-    end
+    if not pos then return 0, 0 end
+
     local display_handle = user_opts.seek_handle_size > 0
     local elem_geo = element.layout.geometry
-
-    -- Check if this is the volumebar and set a different handle size for it
-    local handle_size = user_opts.seek_handle_size
-    if element.name == "volumebar" then
-        handle_size = 1
-    end
-
-    local rh = display_handle and (handle_size * elem_geo.h / 2) or 0 -- handle radius
-    local xp = get_slider_ele_pos_for(element, pos) -- handle position
+    local rh = display_handle and (user_opts.seek_handle_size * elem_geo.h / 2) or 0
+    local xp = get_slider_ele_pos_for(element, pos)
 
     if display_handle then
         elem_ass:round_rect_cw(xp - rh, elem_geo.h / 2 - rh, xp + rh, elem_geo.h / 2 + rh, rh)
@@ -808,15 +875,12 @@ end
 
 -- Draws seekbar ranges according to user_opts
 local function draw_seekbar_ranges(element, elem_ass, xp, rh, override_alpha)
-    local handle = xp and rh
-    xp = xp or 0
-    rh = rh or 0
+    local handle = xp and rh; xp = xp or 0; rh = rh or 0
     local slider_lo = element.layout.slider
     local elem_geo = element.layout.geometry
     local seek_ranges = element.slider.seek_ranges_f()
-    if not seek_ranges then
-        return
-    end
+    if not seek_ranges then return end
+
     elem_ass:draw_stop()
     elem_ass:merge(element.style_ass)
     ass_append_alpha(elem_ass, element.layout.alpha, override_alpha or user_opts.seekrangealpha)
@@ -824,47 +888,76 @@ local function draw_seekbar_ranges(element, elem_ass, xp, rh, override_alpha)
     elem_ass:merge(element.static_ass)
 
     local radius = slider_lo.radius or 0
+    local y1, y2 = slider_lo.gap, elem_geo.h - slider_lo.gap
 
+    local function draw_range(p1, p2, r_left, r_right)
+        if handle and (p1 < xp + rh and p2 > xp - rh) then
+            if p1 < xp - rh then draw_rect(elem_ass, p1, y1, xp - rh, y2, r_left, false, radius) end
+            if xp + rh < p2 then draw_rect(elem_ass, xp + rh, y1, p2, y2, false, r_right, radius) end
+        elseif p2 > p1 then
+            draw_rect(elem_ass, p1, y1, p2, y2, r_left, r_right, radius)
+        end
+    end
+
+    if element.name ~= "seekbar" and element.name ~= "persistent_seekbar" then
+        for _, range in pairs(seek_ranges) do
+            local pstart = math.max(0, get_slider_ele_pos_for(element, range["start"]) - slider_lo.gap)
+            local pend = math.min(elem_geo.w, get_slider_ele_pos_for(element, range["end"]) + slider_lo.gap)
+            draw_range(pstart, pend, (pstart <= element.slider.min.ele_pos + 1), (pend >= element.slider.max.ele_pos - 1))
+        end
+        return
+    end
+
+    local segments = get_seekbar_segments(elem_geo.w)
     for _, range in pairs(seek_ranges) do
-        local pstart = math.max(0, get_slider_ele_pos_for(element, range["start"]) - slider_lo.gap)
-        local pend = math.min(elem_geo.w, get_slider_ele_pos_for(element, range["end"]) + slider_lo.gap)
+        local r_start, r_end = range["start"], range["end"]
+        for i, seg in ipairs(segments) do
+            if r_end > seg.start_p and r_start < seg.end_p then
+                local draw_s, draw_e = math.max(r_start, seg.start_p), math.min(r_end, seg.end_p)
+                local s_ratio = (seg.end_p == seg.start_p) and 0 or (draw_s - seg.start_p) / (seg.end_p - seg.start_p)
+                local e_ratio = (seg.end_p == seg.start_p) and 1 or (draw_e - seg.start_p) / (seg.end_p - seg.start_p)
 
-        -- round edge only when cache range reaches start/end
-        local r_left = pstart < element.slider.min.ele_pos and radius or 0
-        local r_right = pend > element.slider.max.ele_pos and radius or 0
-
-        if handle and (pstart < xp + rh and pend > xp - rh) then
-            -- range overlaps the handle, split it around the handle
-            if pstart < xp - rh then
-                -- left sub-segment: edge rounding on left, flat on handle cut
-                elem_ass:round_rect_cw(pstart, slider_lo.gap, xp - rh, elem_geo.h - slider_lo.gap, r_left, 0)
-            end
-            if xp + rh < pend then
-                -- right sub-segment: flat on handle cut, edge rounding on right
-                elem_ass:round_rect_cw(xp + rh, slider_lo.gap, pend, elem_geo.h - slider_lo.gap, 0, r_right)
-            end
-        else
-            if pend > pstart then
-                elem_ass:round_rect_cw(pstart, slider_lo.gap, pend, elem_geo.h - slider_lo.gap, r_left, r_right)
+                draw_range(seg.x + s_ratio * seg.w, seg.x + e_ratio * seg.w, (draw_s <= seg.start_p and i == 1),
+                    (draw_e >= seg.end_p and i == #segments)
+                )
             end
         end
     end
 end
 
--- Draw seekbar progress more accurately
+-- Draw seekbar progress accurately across chapter segments
 local function draw_seekbar_progress(element, elem_ass)
     local pos = element.slider.pos_f()
-    if not pos then
-        return
-    end
-    local xp = get_slider_ele_pos_for(element, pos)
+    if not pos then return end
+
     local slider_lo = element.layout.slider
     local elem_geo = element.layout.geometry
     local radius = slider_lo.radius or 0
-    if radius > 0 then
-        elem_ass:round_rect_cw(0, slider_lo.gap, xp, elem_geo.h - slider_lo.gap, radius)
-    else
-        elem_ass:rect_cw(0, slider_lo.gap, xp, elem_geo.h - slider_lo.gap)
+    local y1, y2 = slider_lo.gap, elem_geo.h - slider_lo.gap
+
+    if element.name ~= "seekbar" and element.name ~= "persistent_seekbar" then
+        local xp = get_slider_ele_pos_for(element, pos)
+        local r_right = (elem_geo.w - xp < radius)
+        draw_rect(elem_ass, 0, y1, r_right and elem_geo.w or xp, y2, true, r_right, radius)
+        return
+    end
+
+    local segments = get_seekbar_segments(elem_geo.w)
+    for i, seg in ipairs(segments) do
+        if pos > seg.start_p then
+            local is_partial = (pos < seg.end_p)
+            local draw_w = is_partial and ((pos - seg.start_p) / (seg.end_p - seg.start_p)) * seg.w or seg.w
+            local r_right = (i == #segments and not is_partial)
+
+            -- Snap final segment to full width if within one radius to prevent rounded corner clipping.
+            if i == #segments and is_partial and (seg.w - draw_w < radius) then
+                draw_w, r_right = seg.w, true
+            end
+
+            if draw_w > 0 then
+                draw_rect(elem_ass, seg.x, y1, seg.x + draw_w, y2, (i == 1), r_right, radius)
+            end
+        end
     end
 end
 
@@ -946,8 +1039,6 @@ local function render_elements(master_ass)
             if element.name ~= "persistent_seekbar" then
                 local slider_lo = element.layout.slider
                 local elem_geo = element.layout.geometry
-                local s_min = element.slider.min.value
-                local s_max = element.slider.max.value
 
                 local xp, rh = draw_seekbar_handle(element, elem_ass) -- handle posistion, handle radius
                 draw_seekbar_progress(element, elem_ass)
@@ -1762,7 +1853,6 @@ local function create_elements()
     ne = new_element("volumebar", "slider")
     ne.enabled = state.audio_track_count > 0
     ne.slider = {min = {value = 0}, max = {value = volume_max}}
-    ne.slider.marker_f = function () return {} end
     ne.slider.seek_ranges_f = function() return nil end
     ne.slider.pos_f = function ()
         return state.volume
@@ -1857,19 +1947,6 @@ local function create_elements()
     ne = new_element("seekbar", "slider")
     ne.enabled = mp.get_property("percent-pos") ~= nil
     ne.thumbnailable = true
-    ne.slider.marker_f = function ()
-        local duration = mp.get_property_number("duration")
-        if duration and duration > 0 then
-            local chapters = state.chapter_list
-            local markers = {}
-            for n = 1, #chapters do
-                markers[n] = (chapters[n].time / duration * 100)
-            end
-            return markers
-        else
-            return {}
-        end
-    end
     ne.slider.pos_f = function ()
         if state.eof_reached then return 100 end
         return mp.get_property_number("percent-pos")
@@ -1918,20 +1995,21 @@ local function create_elements()
         end
     end
     ne.eventresponder["mbtn_right_down"] = function (element)
-        local chapter
-        local pos = get_slider_value(element)
-        local diff = math.huge
+        local dur = mp.get_property_number("duration", 0)
+        if not state.chapter_list or dur <= 0 then return end
 
-        for i, marker in ipairs(element.slider.marker_f()) do
-            if math.abs(pos - marker) < diff then
-                diff = math.abs(pos - marker)
-                chapter = i
+        local target = (get_slider_value(element) / 100) * dur
+        local best_idx = 1
+        local min_diff = math.huge
+
+        for i, c in ipairs(state.chapter_list) do
+            local diff = math.abs(target - c.time)
+            if diff < min_diff then
+                min_diff, best_idx = diff, i
             end
         end
 
-        if chapter then
-            mp.set_property("chapter", chapter - 1)
-        end
+        mp.set_property("chapter", best_idx - 1)
     end
     ne.eventresponder["reset"] = function (element)
         element.state.lastseek = nil
@@ -1949,7 +2027,6 @@ local function create_elements()
     --persistent seekbar
     ne = new_element("persistent_seekbar", "slider")
     ne.enabled = mp.get_property("percent-pos") ~= nil
-    ne.slider.marker_f = function () return {} end
     ne.slider.pos_f = function ()
         if state.eof_reached then return 100 end
         return mp.get_property_number("percent-pos")
@@ -2425,13 +2502,12 @@ end
 
 -- duration is observed for the sole purpose of updating chapter markers
 -- positions. live streams with chapters are very rare, and the update is also
--- expensive (with request_init), so it's only observed when we have chapters
--- and the user didn't disable the livemarkers option (update_duration_watch).
+-- expensive (with request_init), so it's only observed when we have chapters.
 local function on_duration() request_init() end
 
 local duration_watched = false
 local function update_duration_watch()
-    local want_watch = user_opts.livemarkers and #state.chapter_list > 0
+    local want_watch = #state.chapter_list > 0
 
     if want_watch ~= duration_watched then
         if want_watch then
