@@ -581,9 +581,9 @@ local function get_slider_value(element)
     return get_slider_value_at(element, get_virt_mouse_pos())
 end
 
--- multiplies two alpha values, formular can probably be improved
+-- multiplies two alpha values
 local function mult_alpha(alpha_a, alpha_b)
-    return 255 - (((1-(alpha_a/255)) * (1-(alpha_b/255))) * 255)
+    return 255 - (255 - alpha_a) * (255 - alpha_b) / 255
 end
 
 local function add_area(name, x1, y1, x2, y2)
@@ -1953,16 +1953,30 @@ local function create_elements()
     end
     ne.slider.tooltip_f = function (pos)
         local duration = mp.get_property_number("duration")
-        if duration ~= nil and pos ~= nil then return format_time(duration * (pos / 100)) end
+        if duration and pos then return format_time(duration * (pos / 100)) end
         return ""
     end
     ne.slider.seek_ranges_f = build_cache_seek_ranges
+
+    local function seekbar_pause(element)
+        element.state.was_paused = state.pause
+        if not state.pause then
+            mp.commandv("cycle", "pause")
+            state.playing_and_seeking = true
+        end
+    end
+
+    local function seekbar_unpause(element)
+        if state.playing_and_seeking then
+            if not element.state.was_paused and not state.eof_reached then
+                mp.commandv("cycle", "pause")
+            end
+            state.playing_and_seeking = false
+        end
+    end
+
     ne.eventresponder["mouse_move"] = function (element)
         if not element.state.mbtnleft then return end
-        state.playing_and_seeking = true
-        if not mp.get_property_bool("pause") then
-            mp.commandv("cycle", "pause")
-        end
         local seekto = get_slider_value(element)
         if element.state.lastseek == nil or element.state.lastseek ~= seekto then
             local flags = "absolute-percent"
@@ -1975,38 +1989,29 @@ local function create_elements()
     end
     ne.eventresponder["mbtn_left_down"] = function (element)
         element.state.mbtnleft = true
-        element.state.was_paused = state.pause
-        state.playing_and_seeking = false
+        seekbar_pause(element)
         mp.commandv("seek", get_slider_value(element), "absolute-percent+exact")
     end
     ne.eventresponder["shift+mbtn_left_down"] = function (element)
         element.state.mbtnleft = true
-        element.state.was_paused = state.pause
-        state.playing_and_seeking = false
+        seekbar_pause(element)
         mp.commandv("seek", get_slider_value(element), "absolute-percent")
     end
     ne.eventresponder["mbtn_left_up"] = function (element)
         element.state.mbtnleft = false
-        if state.playing_and_seeking then
-            if not element.state.was_paused and not state.eof_reached then
-                mp.commandv("cycle", "pause")
-            end
-            state.playing_and_seeking = false
-        end
+        seekbar_unpause(element)
     end
     ne.eventresponder["mbtn_right_down"] = function (element)
         local dur = mp.get_property_number("duration", 0)
         if not state.chapter_list or dur <= 0 then return end
 
         local target = (get_slider_value(element) / 100) * dur
-        local best_idx = 1
-        local min_diff = math.huge
+        local best_idx, min_diff = 1, math.huge
 
         for i, c in ipairs(state.chapter_list) do
             local diff = math.abs(target - c.time)
-            if diff < min_diff then
-                min_diff, best_idx = diff, i
-            end
+            if diff >= min_diff then break end
+            min_diff, best_idx = diff, i
         end
 
         mp.set_property("chapter", best_idx - 1)
@@ -2015,12 +2020,7 @@ local function create_elements()
         element.state.lastseek = nil
         if element.state.mbtnleft then
             element.state.mbtnleft = false
-            if state.playing_and_seeking then
-                if not element.state.was_paused and not state.eof_reached then
-                    mp.commandv("cycle", "pause")
-                end
-                state.playing_and_seeking = false
-            end
+            seekbar_unpause(element)
         end
     end
 
