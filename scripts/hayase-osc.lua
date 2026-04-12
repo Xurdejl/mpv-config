@@ -39,8 +39,6 @@ local user_opts = {
 
     speed_button = false,                  -- show speed control button
     audio_button = false,                  -- show audio track button (only if more than 1 audio track exists)
-    cache_info = false,                    -- show cached time information
-    cache_info_speed = false,              -- show cache speed per second
 
     seek_handle_size = 0,                  -- size ratio of the progress bar handle (range: 0 ~ 1)
     seekrange = true,                      -- show seek range overlay
@@ -173,7 +171,6 @@ local locale = {
     ontop = "Pin on top",
     ontop_disable = "Unpin",
     speed_control = "Playback speed",
-    cache = "Cache",
     buffering = "Buffering",
     menu = "Menu",
     replay = "Replay",
@@ -261,12 +258,10 @@ local state = {
     showhide_enabled = false,
     windowcontrols_buttons = false,
     wc_visible = false,
-    dmx_cache = 0,
     border = true,
     window_maximized = false,
     osd = mp.create_osd_overlay("ass-events"),
     logo_osd = mp.create_osd_overlay("ass-events"),
-    buffering = false,
     new_file_flag = false,                  -- flag to detect new file starts
     temp_visibility_mode = nil,             -- store temporary visibility mode state
     chapter_list = {},                      -- sorted by time
@@ -1607,13 +1602,6 @@ local function layout_default()
         lo.style = osc_styles.buttons
         end_x = end_x - 55
     end
-
-    elements.cache_info.visible = user_opts.cache_info and osc_geo.w >= 500
-    if elements.cache_info.visible then
-        lo = add_layout("cache_info")
-        lo.geometry = {x = end_x + 7, y = ref_y - 38, an = 6, w = (user_opts.cache_info_speed and 70 or 45), h = 24}
-        lo.style = osc_styles.time
-    end
 end
 
 
@@ -1917,31 +1905,6 @@ local function create_elements()
     ne.eventresponder["mbtn_mid_up"] = function() mp.set_property("speed", 1) end
     ne.eventresponder["wheel_up_press"] = function() adjust_speed(0.25) end
     ne.eventresponder["wheel_down_press"] = function() adjust_speed(-0.25) end
-
-    -- cache info
-    ne = new_element("cache_info", "button")
-    ne.content = function ()
-        if not cache_enabled() then return "" end
-        local cache_state = state.demuxer_cache_state and state.demuxer_cache_state["cache-duration"]
-        local thresh = math.min(state.dmx_cache * 0.05, 5) -- 5% or 5s
-        if cache_state and math.abs(cache_state - state.dmx_cache) >= thresh then
-            state.dmx_cache = cache_state
-        end
-        local dmx_cache = state.dmx_cache
-        local min = math.floor(dmx_cache / 60)
-        local sec = math.floor(dmx_cache % 60)
-        local cache_time = (min > 0 and string.format("%sm%02ds", min, sec) or string.format("%3ds", sec))
-        local dmx_speed = state.demuxer_cache_state and state.demuxer_cache_state["raw-input-rate"] or 0
-        local cache_speed = utils.format_bytes_humanized(dmx_speed)
-        local number, unit = cache_speed:match("([%d%.]+)%s*(%S+)")
-        local percent = mp.get_property("cache-buffering-state") or "0"
-        local cache_info = state.buffering and (locale.buffering .. ": " .. percent .. "%") or cache_time
-        local cache_info_speed = string.format("%8s %4s/s", (number or 0), (unit or "B"))
-        return user_opts.cache_info_speed and cache_info .. "\\N" .. cache_info_speed or cache_info
-    end
-    ne.tooltip_style = osc_styles.tooltip
-    ne.tooltip_f = cache_enabled() and locale.cache or ""
-    ne.eventresponder["mbtn_left_up"] = function() mp.command("script-binding stats/display-page-3") end
 
     --seekbar
     ne = new_element("seekbar", "slider")
@@ -2593,7 +2556,6 @@ observe_cached("eof-reached", request_tick)
 observe_cached("ontop", request_tick)
 observe_cached("speed", request_tick)
 observe_cached("chapter", request_tick)
-mp.observe_property("paused-for-cache", "bool", function(_, val) state.buffering = val end)
 -- ensure compatibility with auto loop scripts
 mp.observe_property("loop-file", "bool", function(_, val)
     state.file_loop = (val ~= false)
