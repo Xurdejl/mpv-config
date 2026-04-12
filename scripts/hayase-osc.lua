@@ -35,7 +35,6 @@ local user_opts = {
 
     window_top_bar = "auto",               -- show OSC window top bar: "auto", "yes", or "no" (borderless/fullscreen)
     window_title = false,                  -- show window title in borderless/fullscreen mode
-    window_controls = true,                -- show window controls (close, minimize, maximize) in borderless/fullscreen
 
     speed_button = false,                  -- show speed control button
     audio_button = false,                  -- show audio track button (only if more than 1 audio track exists)
@@ -71,7 +70,7 @@ local user_opts = {
     tick_delay_follow_display_fps = false, -- use display FPS as the minimum redraw interval
 
     -- Mouse commands: title
-    title_mbtn_left_command = "script-binding stats/display-page-5",
+    title_mbtn_left_command = "script-binding stats/display-page-5-toggle",
     title_mbtn_mid_command = "show-text ${path}",
     title_mbtn_right_command = "script-binding select/select-watch-history",
 
@@ -1340,9 +1339,8 @@ local function add_layout(name)
     end
 end
 
--- Window Controls
-local function window_controls()
-    local wc_geo = {
+local function window_titlebar()
+    local geo = {
         x = 0,
         y = 30,
         an = 1,
@@ -1350,46 +1348,38 @@ local function window_controls()
         h = 30,
     }
 
-    local lo
-    local controlbox_w = window_control_box_width
-    local titlebox_w = wc_geo.w - controlbox_w
+    local controls_w = window_control_box_width
+    local controls_x = geo.w - controls_w
 
-    local controlbox_left = wc_geo.w - controlbox_w
-    local titlebox_left = wc_geo.x
-    local titlebox_right = wc_geo.w - controlbox_w
+    local title_x = geo.x + 15
+    local title_w = controls_x - title_x
 
-    local button_y = wc_geo.y - (wc_geo.h / 2)
-    local first_geo = {x = controlbox_left + 25, y = button_y, an = 5, w = 50, h = wc_geo.h}
-    local second_geo = {x = controlbox_left + 75, y = button_y, an = 5, w = 50, h = wc_geo.h}
-    local third_geo = {x = controlbox_left + 125, y = button_y, an = 5, w = 50, h = wc_geo.h}
+    local button_y = geo.y - (geo.h / 2)
+    local layout
 
-    -- Window controls
-    if user_opts.window_controls then
-        -- Close: 🗙
-        lo = add_layout("close")
-        lo.geometry = third_geo
-        lo.style = osc_styles.window_control
+    -- Minimize: 🗕
+    layout = add_layout("minimize")
+    layout.geometry = { x = controls_x + 25, y = button_y, an = 5, w = 50, h = geo.h }
+    layout.style = osc_styles.window_control
 
-        -- Minimize: 🗕
-        lo = add_layout("minimize")
-        lo.geometry = first_geo
-        lo.style = osc_styles.window_control
+    -- Maximize: 🗖 / 🗗
+    layout = add_layout("maximize")
+    layout.geometry = { x = controls_x + 75, y = button_y, an = 5, w = 50, h = geo.h }
+    layout.style = osc_styles.window_control
 
-        -- Maximize: 🗖 /🗗
-        lo = add_layout("maximize")
-        lo.geometry = second_geo
-        lo.style = osc_styles.window_control
+    -- Close: 🗙
+    layout = add_layout("close")
+    layout.geometry = { x = controls_x + 125, y = button_y, an = 5, w = 50, h = geo.h }
+    layout.style = osc_styles.window_control
 
-        add_area("window-controls", get_hitbox_coords(controlbox_left, wc_geo.y, wc_geo.an, controlbox_w, wc_geo.h))
-    end
+    add_area("window-controls", get_hitbox_coords(controls_x, geo.y, geo.an, controls_w, geo.h))
 
-    -- Window Title
+    -- Window title (also shown on progress bar)
     if user_opts.window_title then
-        lo = add_layout("windowtitle")
-        lo.geometry = {x = 15, y = button_y + 14, an = 1, w = titlebox_w, h = wc_geo.h}
-        lo.style = string.format("%s{\\clip(%f,%f,%f,%f)}", osc_styles.window_title, titlebox_left, wc_geo.y - wc_geo.h, titlebox_right, wc_geo.y + wc_geo.h)
-
-        add_area("window-controls-title", titlebox_left, 0, titlebox_right, wc_geo.h)
+        layout = add_layout("window_title")
+        layout.geometry = { x = title_x, y = button_y + 14, an = 1, w = title_w, h = geo.h }
+        layout.style = string.format("%s{\\clip(%f,%f,%f,%f)}",
+            osc_styles.window_title, 0, 0, controls_x, geo.y + geo.h)
     end
 end
 
@@ -1436,10 +1426,8 @@ local function layout_default()
     lo.layer = 10
     lo.alpha[3] = 50
 
-    local top_titlebar = window_controls_enabled() and (user_opts.window_title or user_opts.window_controls)
-
-    -- Window bar alpha
-    if top_titlebar then
+    -- Window bar background
+    if window_controls_enabled() then
         new_element("window_bar_alpha_bg", "box")
         lo = add_layout("window_bar_alpha_bg")
         lo.geometry = {x = pos_x, y = -100, an = 7, w = osc_w, h = -1}
@@ -1696,7 +1684,7 @@ local function create_elements()
     ne.eventresponder["mbtn_left_up"] = function () mp.commandv("cycle", (state.fullscreen and "fullscreen" or "window-maximized")) end
 
     -- Window Title
-    ne = new_element("windowtitle", "button")
+    ne = new_element("window_title", "button")
     ne.is_wc = true
     ne.content = function ()
         local title = mp.command_native({"expand-text", mp.get_property("title")})
@@ -2043,7 +2031,7 @@ local function osc_init()
     layout_default()
 
     if window_controls_enabled() then
-        window_controls()
+        window_titlebar()
     end
 
     state.persistent_seekbar_element = elements["persistent_seekbar"]
