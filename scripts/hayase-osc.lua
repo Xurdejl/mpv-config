@@ -898,6 +898,45 @@ local function draw_seekbar_progress(element, elem_ass)
     end
 end
 
+-- Draw semi-transparent hover indicator from current progress to mouse position
+local function draw_seekbar_hover(element, elem_ass)
+    if not mouse_hit(element) or element.state.mbtnleft then return end
+
+    local pos = element.slider.pos_f()
+    if not pos then return end
+
+    local hover_pos = get_slider_value(element)
+    if not hover_pos or hover_pos <= pos then return end
+
+    local slider_lo = element.layout.slider
+    local elem_geo = element.layout.geometry
+    local radius = slider_lo.radius or 0
+    local y1, y2 = slider_lo.gap, elem_geo.h - slider_lo.gap
+
+    elem_ass:draw_stop()
+    elem_ass:merge(element.style_ass)
+    ass_append_alpha(elem_ass, element.layout.alpha, 0)
+    elem_ass:append(osc_styles.seekbar_bg)
+    elem_ass:merge(element.static_ass)
+
+    local segments = get_seekbar_segments(elem_geo.w)
+    for i, seg in ipairs(segments) do
+        if hover_pos > seg.start_p and pos < seg.end_p then
+            local s = math.max(pos, seg.start_p)
+            local e = math.min(hover_pos, seg.end_p)
+            local s_ratio = (seg.end_p == seg.start_p) and 0 or (s - seg.start_p) / (seg.end_p - seg.start_p)
+            local e_ratio = (seg.end_p == seg.start_p) and 1 or (e - seg.start_p) / (seg.end_p - seg.start_p)
+            local x1 = seg.x + s_ratio * seg.w
+            local x2 = seg.x + e_ratio * seg.w
+            if x2 > x1 then
+                draw_rect(elem_ass, x1, y1, x2, y2,
+                    (s <= seg.start_p and i == 1),
+                    (e >= seg.end_p and i == #segments), radius)
+            end
+        end
+    end
+end
+
 local function render_elements(master_ass)
     local osd_w = osc_param.osd_w
     local r_w = osc_param.r_w
@@ -978,6 +1017,7 @@ local function render_elements(master_ass)
                 local elem_geo = element.layout.geometry
 
                 draw_seekbar_progress(element, elem_ass)
+                draw_seekbar_hover(element, elem_ass)
                 draw_seekbar_ranges(element, elem_ass)
 
                 elem_ass:draw_stop()
