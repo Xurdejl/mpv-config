@@ -39,29 +39,15 @@ local user_opts = {
     speed_button = false,                  -- show speed control button
     audio_button = false,                  -- show audio track button (only if more than 1 audio track exists)
 
-    seek_handle_size = 0,                  -- size ratio of the progress bar handle (range: 0 ~ 1)
     seekrange = true,                      -- show seek range overlay
     seekrangealpha = 150,                  -- transparency of the seek range
     seekbarkeyframes = false,              -- use keyframes when dragging the seekbar
     automatickeyframemode = true,          -- automatically set keyframes for the seekbar based on video length
     automatickeyframelimit = 600,          -- videos longer than this (in seconds) will have keyframes on the seekbar
     persistent_progress = false,           -- always show a small progress line at the bottom of the screen
-    persistent_progress_height = 18,       -- height of the persistent progress bar
     persistent_buffer = false,             -- show cached buffer status in the persistent progress line
 
-    font_size_lg = 24,                     -- font size for the title (above seekbar)
-    font_size_md = 18,                     -- font size of the time codes, tootlips, and chapter title
-    buttons_size = 24,                     -- icon size for the play/pause button
-
-    background_color = "#000000",          -- accent color of the OSC and title bar
-    title_color = "#FFFFFF",               -- color of the title (above seekbar)
-    chapter_title_color = "#D9D9D9",       -- color of the chapter title (above seekbar)
-    buttons_color = "#FFFFFF",             -- color of the play/pause button
-    seekbarfg_color = "#FFFFFF",           -- color of the seekbar progress and handle
-    seekbarbg_color = "#D9D9D9",           -- color of the remaining seekbar
-    volumebar_match_seek_color = false,      -- match volume bar color with seekbar color
-    thumbnail_border_color = "#FFFFFF",    -- color of the border for thumbnails (with thumbfast)
-    thumbnail_border_outline = "#FFFFFF",  -- color of the border outline for thumbnails
+    accent_color = "#FFFFFF",             -- accent color for the progress bar
 
     visibility = "auto",                   -- only used at init to set visibility_mode(...)
     visibility_modes = "never_auto_always",-- visibility modes to cycle through
@@ -172,25 +158,31 @@ end
 
 local osc_styles
 
+local FONT_SIZE_LG = 24
+local FONT_SIZE_MD = 18
+
 local function set_osc_styles()
-    local buttons_size = user_opts.buttons_size or 24
     osc_styles = {
-        osc_fade_bg = "{\\blur80\\bord120\\1c&H0&\\3c&H" .. osc_color_convert(user_opts.background_color) .. "&}",
-        window_fade_bg = "{\\blur80\\bord100\\1c&H0&\\3c&H" .. osc_color_convert(user_opts.background_color) .. "&}",
-        window_control = "{\\blur1\\bord0.5\\1c&H" .. osc_color_convert(user_opts.buttons_color) .. "&\\3c&H0&\\fs10\\fn" .. icon_font .. "}",
-        window_title = "{\\blur1\\bord0.5\\1c&H" .. osc_color_convert(user_opts.title_color) .. "&\\3c&H0&\\fs22\\q2}",
-        title = "{\\blur1\\bord0.5\\1c&H" .. osc_color_convert(user_opts.title_color) .. "&\\3c&H0&\\fs".. user_opts.font_size_lg .."\\q2}",
-        chapter_title = "{\\blur0\\bord0\\1c&H" .. osc_color_convert(user_opts.chapter_title_color) .. "&\\3c&H0&\\fs" .. user_opts.font_size_md .. "}",
-        seekbar_bg = "{\\blur0\\bord0\\1c&H" .. osc_color_convert(user_opts.seekbarbg_color) .. "&}",
-        seekbar_fg = "{\\blur1\\bord1\\1c&H" .. osc_color_convert(user_opts.seekbarfg_color) .. "&}",
-        thumbnail = "{\\blur0\\bord1\\1c&H" .. osc_color_convert(user_opts.thumbnail_border_color) .. "&\\3c&H" .. osc_color_convert(user_opts.thumbnail_border_outline) .. "&\\3a&HE6&}",
-        time = "{\\blur0\\bord0\\1c&H" .. osc_color_convert(user_opts.title_color) .. "&\\3c&H0&\\fs" .. user_opts.font_size_md .. "}",
-        tooltip = "{\\blur0\\bord0\\1c&HFFFFFF&\\3c&H0&\\fs" .. user_opts.font_size_md .. "}",
-        tooltip_bg = "{\\blur0\\bord0\\1c&H000000&\\1a&H80&}",
-        volumebar_bg = "{\\blur0\\bord0\\1c&H999999&}",
-        volumebar_fg = "{\\blur1\\bord1\\1c&H" .. osc_color_convert(user_opts.buttons_color) .. "&}",
-        buttons = "{\\blur0\\bord0\\1c&H" .. osc_color_convert(user_opts.buttons_color) .. "&\\3c&HFFFFFF&\\fs" .. buttons_size .. "\\fn" .. icon_font .. "}",
-        hover_bg = "{\\blur0\\bord0\\1c&HFAFAFA&}"
+        titlebar_bg    = "{\\blur80\\bord100\\1c&H0&\\3c&H000000&}",
+        bottombar_bg   = "{\\blur80\\bord120\\1c&H0&\\3c&H000000&}",
+        hover_bg       = "{\\bord0\\1c&HFAFAFA&}",
+        tooltip_bg     = "{\\bord0\\1c&H000000&\\1a&H80&}",
+
+        seekbar_bg     = "{\\bord0\\1c&HD9D9D9&\\1a&H99&}",
+        seekbar_fg     = "{\\bord0\\1c&H" .. osc_color_convert(user_opts.accent_color) .. "&}",
+        volumebar_bg   = "{\\bord0\\1c&HD9D9D9&\\1a&H99&}",
+        volumebar_fg   = "{\\bord0\\1c&H" .. osc_color_convert(user_opts.accent_color) .. "&}",
+
+        window_title   = "{\\bord0\\1c&HFFFFFF&\\fs" .. FONT_SIZE_LG .. "\\q2}",
+        title          = "{\\bord0\\1c&HFFFFFF&\\fs" .. FONT_SIZE_LG .. "\\q2}",
+        chapter_title  = "{\\bord0\\1c&HD9D9D9&\\1a&H66&\\fs" .. FONT_SIZE_MD .. "}",
+        time           = "{\\bord0\\1c&HFFFFFF&\\fs" .. FONT_SIZE_MD .. "}",
+        tooltip        = "{\\bord0\\1c&HFFFFFF&\\fs" .. FONT_SIZE_MD .. "}",
+
+        window_control = "{\\bord0\\1c&HFFFFFF&\\fs10\\fn" .. icon_font .. "}",
+        buttons        = "{\\bord0\\1c&HFFFFFF&\\fs24\\fn" .. icon_font .. "}",
+
+        thumbnail      = "{\\bord1\\1c&HFFFFFF&\\3c&HFFFFFF&\\3a&HE6&}",
     }
 end
 
@@ -778,7 +770,7 @@ local function prepare_elements()
             --draw static slider parts
             local slider_lo = element.layout.slider
             -- calculate positions of min and max points
-            element.slider.min.ele_pos = user_opts.seek_handle_size > 0 and (user_opts.seek_handle_size * elem_geo.h / 2) or slider_lo.border
+            element.slider.min.ele_pos = slider_lo.border
             element.slider.max.ele_pos = elem_geo.w - element.slider.min.ele_pos
             element.slider.min.glob_pos = element.hitbox.x1 + element.slider.min.ele_pos
             element.slider.max.glob_pos = element.hitbox.x1 + element.slider.max.ele_pos
@@ -822,28 +814,8 @@ local function get_chapter(possec)
     end
 end
 
--- Draws a handle on the seekbar according to user_opts.
--- Returns the handle's x position and radius; both are 0 when no handle is drawn.
-local function draw_seekbar_handle(element, elem_ass)
-    local pos = element.slider.pos_f()
-    if not pos then return 0, 0 end
-
-    local display_handle = user_opts.seek_handle_size > 0
-    local elem_geo = element.layout.geometry
-    local rh = display_handle and (user_opts.seek_handle_size * elem_geo.h / 2) or 0
-    local xp = get_slider_ele_pos_for(element, pos)
-
-    if display_handle then
-        elem_ass:round_rect_cw(xp - rh, elem_geo.h / 2 - rh, xp + rh, elem_geo.h / 2 + rh, rh)
-
-        return xp, rh
-    end
-    return xp, 0
-end
-
 -- Draws seekbar ranges according to user_opts
-local function draw_seekbar_ranges(element, elem_ass, xp, rh, override_alpha)
-    local handle = xp and rh; xp = xp or 0; rh = rh or 0
+local function draw_seekbar_ranges(element, elem_ass, override_alpha)
     local slider_lo = element.layout.slider
     local elem_geo = element.layout.geometry
     local seek_ranges = element.slider.seek_ranges_f()
@@ -859,10 +831,7 @@ local function draw_seekbar_ranges(element, elem_ass, xp, rh, override_alpha)
     local y1, y2 = slider_lo.gap, elem_geo.h - slider_lo.gap
 
     local function draw_range(p1, p2, r_left, r_right)
-        if handle and (p1 < xp + rh and p2 > xp - rh) then
-            if p1 < xp - rh then draw_rect(elem_ass, p1, y1, xp - rh, y2, r_left, false, radius) end
-            if xp + rh < p2 then draw_rect(elem_ass, xp + rh, y1, p2, y2, false, r_right, radius) end
-        elseif p2 > p1 then
+        if p2 > p1 then
             draw_rect(elem_ass, p1, y1, p2, y2, r_left, r_right, radius)
         end
     end
@@ -1008,9 +977,8 @@ local function render_elements(master_ass)
                 local slider_lo = element.layout.slider
                 local elem_geo = element.layout.geometry
 
-                local xp, rh = draw_seekbar_handle(element, elem_ass) -- handle posistion, handle radius
                 draw_seekbar_progress(element, elem_ass)
-                draw_seekbar_ranges(element, elem_ass, xp, rh)
+                draw_seekbar_ranges(element, elem_ass)
 
                 elem_ass:draw_stop()
 
@@ -1031,7 +999,7 @@ local function render_elements(master_ass)
                         local tx = get_virt_mouse_pos()
 
                         local pad_h, pad_v = 4, 4
-                        local fs = user_opts.font_size_md
+                        local fs = FONT_SIZE_MD
                         local spacing = 5
 
                         local tooltip_width = estimate_text_width(tooltiplabel, slider_lo.tooltip_style)
@@ -1245,7 +1213,7 @@ local function render_persistent_progress(master_ass)
         draw_seekbar_progress(element, elem_ass)
 
         if user_opts.persistent_buffer then
-            draw_seekbar_ranges(element, elem_ass, nil, nil)
+            draw_seekbar_ranges(element, elem_ass)
         end
 
         elem_ass:draw_stop()
@@ -1393,10 +1361,10 @@ local function layout_default()
     -- Controller Background
     local lo, geo
 
-    new_element("osc_fade_bg", "box")
-    lo = add_layout("osc_fade_bg")
+    new_element("bottombar_bg", "box")
+    lo = add_layout("bottombar_bg")
     lo.geometry = {x = pos_x, y = pos_y, an = 7, w = osc_w, h = 1}
-    lo.style = osc_styles.osc_fade_bg
+    lo.style = osc_styles.bottombar_bg
     lo.layer = 10
     lo.alpha[3] = 50
 
@@ -1405,7 +1373,7 @@ local function layout_default()
         new_element("window_bar_alpha_bg", "box")
         lo = add_layout("window_bar_alpha_bg")
         lo.geometry = {x = pos_x, y = -100, an = 7, w = osc_w, h = -1}
-        lo.style = osc_styles.window_fade_bg
+        lo.style = osc_styles.titlebar_bg
         lo.layer = 10
         lo.alpha[3] = 0
     end
@@ -1437,7 +1405,7 @@ local function layout_default()
 
     if user_opts.persistent_progress or state.persistent_progress_toggle then
         lo = add_layout("persistent_seekbar")
-        lo.geometry = {x = ref_x, y = ref_y, an = 5, w = osc_geo.w, h = user_opts.persistent_progress_height}
+        lo.geometry = {x = ref_x, y = ref_y, an = 5, w = osc_geo.w, h = 18}
         lo.style = osc_styles.seekbar_fg
         lo.slider.gap = (seekbar_h - seekbar_bg_h) / 2.0
         lo.slider.tooltip_an = 0
@@ -1454,21 +1422,21 @@ local function layout_default()
     -- OSC title
     local title_w = (chapter_index and (osc_geo.w - 50) or (osc_geo.w - 50 - time_codes_width))
     if title_w < 0 then title_w = 0 end
-    geo = {x = 25, y = ref_y - (chapter_index and 122 or 100), an = 1, w = title_w, h = user_opts.font_size_lg}
+    geo = {x = 25, y = ref_y - (chapter_index and 122 or 100), an = 1, w = title_w, h = FONT_SIZE_LG}
     lo = add_layout("title")
     lo.geometry = geo
     lo.style = string.format("%s{\\clip(%f,%f,%f,%f)}", osc_styles.title, geo.x, geo.y - geo.h, geo.x + geo.w, geo.y + geo.h)
     lo.alpha[3] = 0
 
     -- Chapter title (above seekbar)
-    local chapter_geo = {x = 25, y = ref_y - 100, an = 1, w = osc_geo.w / 2, h = user_opts.font_size_md}
+    local chapter_geo = {x = 25, y = ref_y - 100, an = 1, w = osc_geo.w / 2, h = FONT_SIZE_MD}
     lo = add_layout("chapter_title")
     lo.geometry = chapter_geo
     lo.style = string.format("%s{\\clip(%f,%f,%f,%f)}", osc_styles.chapter_title, chapter_geo.x, chapter_geo.y - chapter_geo.h, chapter_geo.x + chapter_geo.w, chapter_geo.y + chapter_geo.h)
 
     -- Time codes
     lo = add_layout("time_codes")
-    lo.geometry = {x = osc_geo.w - 25, y = ref_y - 108, an = 6, w = time_codes_width, h = user_opts.font_size_md}
+    lo.geometry = {x = osc_geo.w - 25, y = ref_y - 108, an = 6, w = time_codes_width, h = FONT_SIZE_MD}
     lo.style = osc_styles.time
 
     -- Left side buttons
@@ -1507,12 +1475,12 @@ local function layout_default()
             lo.geometry = {x = start_x, y = ref_y - 38, an = 4, w = 95, h = 2}
             lo.layer = 13
             lo.alpha[1] = 128
-            lo.style = user_opts.volumebar_match_seek_color and osc_styles.seekbar_bg or osc_styles.volumebar_bg
+            lo.style = osc_styles.volumebar_bg
             lo.box.radius = 1
 
             lo = add_layout("volumebar")
             lo.geometry = {x = start_x, y = ref_y - 38, an = 4, w = 95, h = 8}
-            lo.style = user_opts.volumebar_match_seek_color and osc_styles.seekbar_fg or osc_styles.volumebar_fg
+            lo.style = osc_styles.volumebar_fg
             lo.slider.gap = 3
             lo.slider.radius = 1
             lo.slider.tooltip_style = osc_styles.tooltip
@@ -2678,21 +2646,9 @@ local function validate_user_opts()
           user_opts.window_top_bar = "auto"
     end
 
-    if user_opts.seek_handle_size < 0 then
-        msg.warn("seek_handle_size must be 0 or higher. Setting it to 0 (minimum).")
-        user_opts.seek_handle_size = 0
-    end
-
-    local colors = {
-        user_opts.background_color, user_opts.seekbarfg_color, user_opts.seekbarbg_color,
-        user_opts.title_color, user_opts.thumbnail_border_color, user_opts.chapter_title_color,
-        user_opts.thumbnail_border_outline
-    }
-
-    for _, color in pairs(colors) do
-        if color:find("^#%x%x%x%x%x%x$") == nil then
-            msg.warn("'" .. color .. "' is not a valid color")
-        end
+    if user_opts.accent_color:find("^#%x%x%x%x%x%x$") == nil then
+        msg.warn("'" .. user_opts.accent_color .. "' is not a valid color")
+        user_opts.accent_color = "#FFFFFF"
     end
 
     for str in string.gmatch(user_opts.visibility_modes, "([^_]+)") do
