@@ -40,7 +40,6 @@ local user_opts = {
     audio_button = false,                  -- show audio track button (only if more than 1 audio track exists)
 
     seekrange = true,                      -- show seek range overlay
-    seekrangealpha = 150,                  -- transparency of the seek range
     seekbarkeyframes = false,              -- use keyframes when dragging the seekbar
     automatickeyframemode = true,          -- automatically set keyframes for the seekbar based on video length
     automatickeyframelimit = 600,          -- videos longer than this (in seconds) will have keyframes on the seekbar
@@ -823,8 +822,7 @@ local function draw_seekbar_ranges(element, elem_ass, override_alpha)
 
     elem_ass:draw_stop()
     elem_ass:merge(element.style_ass)
-    ass_append_alpha(elem_ass, element.layout.alpha, override_alpha or user_opts.seekrangealpha)
-    elem_ass:append("{\\1cH&D9D9D9&}")
+    elem_ass:append(osc_styles.seekbar_bg)
     elem_ass:merge(element.static_ass)
 
     local radius = slider_lo.radius or 0
@@ -872,6 +870,11 @@ local function draw_seekbar_progress(element, elem_ass)
     local radius = slider_lo.radius or 0
     local y1, y2 = slider_lo.gap, elem_geo.h - slider_lo.gap
 
+    elem_ass:draw_stop()
+    elem_ass:merge(element.style_ass)
+    elem_ass:append(osc_styles.seekbar_fg)
+    elem_ass:merge(element.static_ass)
+
     if element.name ~= "seekbar" and element.name ~= "persistent_seekbar" then
         local xp = get_slider_ele_pos_for(element, pos)
         local r_right = (elem_geo.w - xp < radius)
@@ -915,7 +918,6 @@ local function draw_seekbar_hover(element, elem_ass)
 
     elem_ass:draw_stop()
     elem_ass:merge(element.style_ass)
-    ass_append_alpha(elem_ass, element.layout.alpha, 0)
     elem_ass:append(osc_styles.seekbar_bg)
     elem_ass:merge(element.static_ass)
 
@@ -1016,9 +1018,9 @@ local function render_elements(master_ass)
                 local slider_lo = element.layout.slider
                 local elem_geo = element.layout.geometry
 
-                draw_seekbar_progress(element, elem_ass)
-                draw_seekbar_hover(element, elem_ass)
                 draw_seekbar_ranges(element, elem_ass)
+                draw_seekbar_hover(element, elem_ass)
+                draw_seekbar_progress(element, elem_ass)
 
                 elem_ass:draw_stop()
 
@@ -1249,12 +1251,11 @@ local function render_persistent_progress(master_ass)
         elem_ass:merge(style_ass)
         elem_ass:merge(element.static_ass)
 
-        -- draw pos marker
-        draw_seekbar_progress(element, elem_ass)
-
         if user_opts.persistent_buffer then
             draw_seekbar_ranges(element, elem_ass)
         end
+
+        draw_seekbar_progress(element, elem_ass)
 
         elem_ass:draw_stop()
         master_ass:merge(elem_ass)
