@@ -155,32 +155,6 @@ local icons = {
     }
 }
 
---- localization
-local locale = {
-    idle = "Drop files or URLs to play here",
-    off = "Off",
-    unknown = "Unknown",
-    audio = "Audio",
-    subtitle = "Subtitles",
-    no_subs = "No subtitles",
-    no_audio = "No audio tracks",
-    playlist = "Playlist",
-    no_playlist = "Empty playlist",
-    chapter = "Chapter",
-    ontop = "Pin on top",
-    ontop_disable = "Unpin",
-    speed_control = "Playback speed",
-    buffering = "Buffering",
-    menu = "Menu",
-    replay = "Replay",
-    play = "Play",
-    pause = "Pause",
-    fullscreen_enter = "Full screen",
-    fullscreen_exit = "Exit full screen",
-    playlist_next = "Next",
-    playlist_prev = "Previous",
-}
-
 local thumbfast = {
     width = 0,
     height = 0,
@@ -1014,7 +988,7 @@ local function render_elements(master_ass)
                 ass_append_alpha(elem_ass, {[1] = element.hover_alpha or 0xCC, [2] = 255, [3] = 255, [4] = 255}, element.layout.alpha[1])
                 elem_ass:append(bg_color)
 
-                local pad = element.hover_pad or (element.is_wc and 0 or 10)
+                local pad = element.hover_pad or (element.is_wc and 0 or 12)
                 local hover_radius = element.hover_radius or (element.is_wc and 0 or 6)
                 local shrink = (is_held and not element.is_wc) and 0.5 or 0
 
@@ -1217,7 +1191,7 @@ local function render_elements(master_ass)
                         tooltiplabel = element.nothingavailable
                     end
 
-                    local pad = element.hover_pad or (element.is_wc and 0 or 10)
+                    local pad = element.hover_pad or (element.is_wc and 0 or 12)
 
                     local an = 2
                     local ty = element.hitbox.y1 - pad
@@ -1711,7 +1685,7 @@ local function create_elements()
         local chapters = state.chapter_list
         local chapter_data = chapters[chapter_index + 1]
         local chapter_title = chapter_data and chapter_data.title ~= "" and chapter_data.title
-            or string.format("%s: %d/%d", locale.chapter, chapter_index + 1, #chapters)
+            or string.format("Chapter: %d/%d", chapter_index + 1, #chapters)
 
         chapter_title = mp.command_native({"escape-ass", chapter_title})
 
@@ -1723,8 +1697,6 @@ local function create_elements()
     ne = new_element("menu", "button")
     ne.hover_effect = true
     ne.content = icons.menu
-    ne.tooltip_style = osc_styles.tooltip
-    ne.tooltip_f = locale.menu
     bind_mouse_buttons("menu")
 
     -- playlist buttons
@@ -1733,8 +1705,6 @@ local function create_elements()
     ne.hover_effect = true
     ne.visible = pl_pos > 1
     ne.content = icons.previous
-    ne.tooltip_style = osc_styles.tooltip
-    ne.tooltip_f = locale.playlist_prev
     bind_mouse_buttons("playlist_prev")
 
     --next
@@ -1742,20 +1712,12 @@ local function create_elements()
     ne.hover_effect = true
     ne.visible = have_pl and (pl_pos < pl_count)
     ne.content = icons.next
-    ne.tooltip_style = osc_styles.tooltip
-    ne.tooltip_f = locale.playlist_next
     bind_mouse_buttons("playlist_next")
 
     --play control buttons
     --play_pause
     ne = new_element("play_pause", "button")
     ne.hover_effect = true
-    ne.tooltip_style = osc_styles.tooltip
-
-    ne.tooltip_f = function()
-        if state.eof_reached then return locale.replay end
-        return state.pause and locale.play or locale.pause
-    end
 
     ne.content = function()
         if state.eof_reached then return icons.replay end
@@ -1781,11 +1743,11 @@ local function create_elements()
     ne.content = icons.audio
     ne.tooltip_style = osc_styles.tooltip
     ne.tooltip_f = function ()
-        local lang = mp.get_property_native("aid") and (mp.get_property("current-tracks/audio/lang") or locale.unknown)
-        or locale.off
-        return (locale.audio .. " (" .. lang .. ")")
+        local lang = mp.get_property_native("aid") and (mp.get_property("current-tracks/audio/lang") or "Unknown")
+        or "Off"
+        return ("Audio (" .. lang .. ")")
     end
-    ne.nothingavailable = locale.no_audio
+    ne.nothingavailable = "No audio tracks"
     bind_mouse_buttons("audio_track")
 
     --sub_track
@@ -1796,11 +1758,11 @@ local function create_elements()
     ne.content = icons.subtitle
     ne.tooltip_style = osc_styles.tooltip
     ne.tooltip_f = function ()
-        local lang = mp.get_property_native("sid") and (mp.get_property("current-tracks/sub/lang") or locale.unknown)
-        or locale.off
-        return (locale.subtitle .. " (" .. lang .. ")")
+        local lang = mp.get_property_native("sid") and (mp.get_property("current-tracks/sub/lang") or "Unknown")
+        or "Off"
+        return ("Subtitles (" .. lang .. ")")
     end
-    ne.nothingavailable = locale.no_subs
+    ne.nothingavailable = "No subtitles"
     bind_mouse_buttons("sub_track")
 
     -- vol_ctrl
@@ -1853,16 +1815,12 @@ local function create_elements()
     ne = new_element("fullscreen", "button")
     ne.hover_effect = true
     ne.content = function () return state.fullscreen and icons.fullscreen_exit or icons.fullscreen end
-    ne.tooltip_style = osc_styles.tooltip
-    ne.tooltip_f = function () return state.fullscreen and locale.fullscreen_exit or locale.fullscreen_enter end
     bind_mouse_buttons("fullscreen")
 
     --tog_ontop
     ne = new_element("tog_ontop", "button")
     ne.hover_effect = true
     ne.content = function () return not state.ontop and icons.ontop_on or icons.ontop_off end
-    ne.tooltip_style = osc_styles.tooltip
-    ne.tooltip_f = function () return not state.ontop and locale.ontop or locale.ontop_disable end
     ne.eventresponder["mbtn_left_up"] = function ()
         local was_ontop = state.ontop
         mp.commandv("cycle", "ontop")
@@ -1880,8 +1838,6 @@ local function create_elements()
     ne.content = function()
         return "x" .. string.format("%g", state.speed or 1)
     end
-    ne.tooltip_style = osc_styles.tooltip
-    ne.tooltip_f = locale.speed_control
 
     local function adjust_speed(delta)
         local new_speed = (state.speed or 1) + delta
@@ -2386,7 +2342,7 @@ local function render_logo()
         ass:new_event()
         ass:pos(display_w / 2, icon_y + 65)
         ass:an(8)
-        ass:append(locale.idle)
+        ass:append("Drop files or URLs to play here")
     end
     set_osd(state.logo_osd, display_w, display_h, ass.text, -1000)
 end
