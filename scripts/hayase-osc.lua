@@ -921,6 +921,13 @@ local function draw_seekbar_hover(element, elem_ass)
     elem_ass:append(osc_styles.seekbar_bg)
     elem_ass:merge(element.static_ass)
 
+    if element.name ~= "seekbar" and element.name ~= "persistent_seekbar" then
+        local x1 = get_slider_ele_pos_for(element, pos)
+        local x2 = get_slider_ele_pos_for(element, hover_pos)
+        draw_rect(elem_ass, x1, y1, x2, y2, (x1 <= element.slider.min.ele_pos + 1), (x2 >= element.slider.max.ele_pos - 1), radius)
+        return
+    end
+
     local segments = get_seekbar_segments(elem_geo.w)
     for i, seg in ipairs(segments) do
         if hover_pos > seg.start_p and pos < seg.end_p then
