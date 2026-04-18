@@ -167,9 +167,9 @@ local function set_osc_styles()
         hover_bg       = "{\\bord0\\1c&HFAFAFA&}",
         tooltip_bg     = "{\\bord0\\1c&H000000&\\1a&H80&}",
 
-        seekbar_bg     = "{\\bord0\\1c&HD9D9D9&\\1a&H99&}",
+        seekbar_bg     = "{\\bord0\\1c&HD9D9D9&}",
         seekbar_fg     = "{\\bord0\\1c&H" .. osc_color_convert(user_opts.accent_color) .. "&}",
-        volumebar_bg   = "{\\bord0\\1c&HD9D9D9&\\1a&H99&}",
+        volumebar_bg   = "{\\bord0\\1c&HD9D9D9&}",
         volumebar_fg   = "{\\bord0\\1c&H" .. osc_color_convert(user_opts.accent_color) .. "&}",
 
         window_title   = "{\\bord0\\1c&HFFFFFF&\\fs" .. FONT_SIZE_LG .. "\\q2}",
@@ -809,7 +809,7 @@ local function get_chapter(possec)
 end
 
 -- Draws seekbar ranges according to user_opts
-local function draw_seekbar_ranges(element, elem_ass, override_alpha)
+local function draw_seekbar_ranges(element, elem_ass, inverse)
     local slider_lo = element.layout.slider
     local elem_geo = element.layout.geometry
     local seek_ranges = element.slider.seek_ranges_f()
@@ -818,6 +818,7 @@ local function draw_seekbar_ranges(element, elem_ass, override_alpha)
     elem_ass:draw_stop()
     elem_ass:merge(element.style_ass)
     elem_ass:append(osc_styles.seekbar_bg)
+    ass_append_alpha(elem_ass, element.layout.alpha, 153, inverse)
     elem_ass:merge(element.static_ass)
 
     local radius = slider_lo.radius or 0
@@ -856,7 +857,7 @@ local function draw_seekbar_ranges(element, elem_ass, override_alpha)
 end
 
 -- Draw seekbar progress accurately across chapter segments
-local function draw_seekbar_progress(element, elem_ass)
+local function draw_seekbar_progress(element, elem_ass, inverse)
     local pos = element.slider.pos_f()
     if not pos then return end
 
@@ -868,6 +869,7 @@ local function draw_seekbar_progress(element, elem_ass)
     elem_ass:draw_stop()
     elem_ass:merge(element.style_ass)
     elem_ass:append(osc_styles.seekbar_fg)
+    ass_append_alpha(elem_ass, element.layout.alpha, 0, inverse)
     elem_ass:merge(element.static_ass)
 
     if element.name ~= "seekbar" and element.name ~= "persistent_seekbar" then
@@ -914,6 +916,7 @@ local function draw_seekbar_hover(element, elem_ass)
     elem_ass:draw_stop()
     elem_ass:merge(element.style_ass)
     elem_ass:append(osc_styles.seekbar_bg)
+    ass_append_alpha(elem_ass, element.layout.alpha, 153, false)
     elem_ass:merge(element.static_ass)
 
     if element.name ~= "seekbar" and element.name ~= "persistent_seekbar" then
@@ -1020,9 +1023,9 @@ local function render_elements(master_ass)
                 local slider_lo = element.layout.slider
                 local elem_geo = element.layout.geometry
 
-                draw_seekbar_ranges(element, elem_ass)
+                draw_seekbar_ranges(element, elem_ass, false)
                 draw_seekbar_hover(element, elem_ass)
-                draw_seekbar_progress(element, elem_ass)
+                draw_seekbar_progress(element, elem_ass, false)
 
                 elem_ass:draw_stop()
 
@@ -1254,10 +1257,10 @@ local function render_persistent_progress(master_ass)
         elem_ass:merge(element.static_ass)
 
         if user_opts.persistent_buffer then
-            draw_seekbar_ranges(element, elem_ass)
+            draw_seekbar_ranges(element, elem_ass, true)
         end
 
-        draw_seekbar_progress(element, elem_ass)
+        draw_seekbar_progress(element, elem_ass, true)
 
         elem_ass:draw_stop()
         master_ass:merge(elem_ass)
