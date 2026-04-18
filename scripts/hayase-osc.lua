@@ -641,17 +641,12 @@ local function render_wipe(osd)
     osd:remove()
 end
 
---
--- Tracklist Management
---
-
--- updates the OSC internal playlists, should be run each time the track-layout changes
 local function update_tracklist(_, track_list)
     state.audio_track_count = 0
     state.sub_track_count = 0
     state.no_video = true
 
-    for _, track in pairs(track_list) do
+    for _, track in ipairs(track_list) do
         if track.type == "audio" then
             state.audio_track_count = state.audio_track_count + 1
         elseif track.type == "sub" then
