@@ -181,7 +181,7 @@ local function set_osc_styles()
         window_control = "{\\bord0\\1c&HFFFFFF&\\fs10\\fn" .. icon_font .. "}",
         buttons        = "{\\bord0\\1c&HFFFFFF&\\fs24\\fn" .. icon_font .. "}",
 
-        thumbnail      = "{\\bord1\\1c&HFFFFFF&\\3c&HFFFFFF&\\3a&HE6&}",
+        thumbnail      = "{\\bord0\\1c&HFFFFFF&}",
     }
 end
 
@@ -1041,12 +1041,8 @@ local function render_elements(master_ass)
                         local ty = element.hitbox.y1 - 8
                         if an ~= 2 then ty = ty + elem_geo.h / 2 end
                         local tx = get_virt_mouse_pos()
-                        local osd_w = mp.get_property_number("osd-width")
+                        local osd_w = mp.get_osd_size()
                         local r_w, r_h = get_virt_scale_factor()
-
-                        local pad_h, pad_v = 4, 4
-                        local fs = FONT_SIZE_MD
-                        local spacing = 5
 
                         local tooltip_width = estimate_text_width(tooltiplabel, slider_lo.tooltip_style)
 
@@ -1081,47 +1077,46 @@ local function render_elements(master_ass)
                             state.slider_pos = slider_pos
                         end
 
-                        local chapter_tooltip_y = nil
+                        local pad_h, pad_v = 4, 4
+                        local fs = FONT_SIZE_MD
+                        local gap = 5
+                        local border = 2
 
-                        if thumbfast.disabled then
-                            chapter_tooltip_y = ty - fs - 2 * pad_v - spacing
-                        elseif element.thumbnailable and not thumbfast.disabled then
-                            if osd_w then
-                                local hover_sec = 0
-                                local hover_dur = mp.get_property_number("duration")
-                                if hover_dur then hover_sec = hover_dur * slider_pos / 100 end
-                                local thumb_pad = 2
-                                local thumb_margin_x = 18 / r_w
-                                local thumb_x = math.min(osd_w - thumbfast.width - thumb_margin_x, math.max(thumb_margin_x, tx / r_w - thumbfast.width / 2))
-                                thumb_x = math.floor(thumb_x + 0.5)
+                        -- Anchor above tooltip: ty (baseline) - fs (height) - pad_v (padding) - gap
+                        local current_y = ty - fs - pad_v - gap
 
-                                -- symmetric spacing math
-                                local thumb_border_bottom = ty - fs - pad_v - spacing
-                                local thumb_image_bottom = thumb_border_bottom - (thumb_pad * r_h)
-                                local thumb_image_top = thumb_image_bottom - (thumbfast.height * r_h)
-                                local thumb_y = math.floor(thumb_image_top / r_h + 0.5)
+                        if element.thumbnailable and not thumbfast.disabled and osd_w then
+                            local hover_sec = 0
+                            local hover_dur = mp.get_property_number("duration")
+                            if hover_dur then hover_sec = hover_dur * slider_pos / 100 end
 
-                                if state.ani_type == nil then
-                                    elem_ass:new_event()
-                                    elem_ass:append("{\\rDefault}")
-                                    elem_ass:pos(thumb_x * r_w, thumb_image_top)
-                                    elem_ass:an(7)
-                                    elem_ass:append(osc_styles.thumbnail)
-                                    elem_ass:draw_start()
-                                    elem_ass:round_rect_cw(-thumb_pad * r_w, -thumb_pad * r_h, (thumbfast.width + thumb_pad) * r_w, (thumbfast.height + thumb_pad) * r_h, 4)
-                                    elem_ass:draw_stop()
+                            local thumb_margin_x = 18 / r_w
+                            local thumb_x = math.min(osd_w - thumbfast.width - thumb_margin_x, math.max(thumb_margin_x, tx / r_w - thumbfast.width / 2))
+                            thumb_x = math.floor(thumb_x + 0.5)
 
-                                    mp.commandv("script-message-to", "thumbfast", "thumb", hover_sec, thumb_x, thumb_y)
-                                end
+                            local thumb_y = current_y - border - (thumbfast.height * r_h)
 
-                                -- force tooltip to be centered on the thumb, even at far left/right of screen
-                                tx = (thumb_x + thumbfast.width / 2) * r_w
-                                an = 2
+                            if state.ani_type == nil then
+                                elem_ass:new_event()
+                                elem_ass:pos(thumb_x * r_w, thumb_y)
+                                elem_ass:an(7)
+                                elem_ass:append(osc_styles.thumbnail)
+                                elem_ass:draw_start()
+                                elem_ass:round_rect_cw(-border, -border, (thumbfast.width * r_w) + border, (thumbfast.height * r_h) + border, 4)
+                                elem_ass:draw_stop()
 
-                                local thumb_border_top = thumb_image_top - (thumb_pad * r_h)
-                                chapter_tooltip_y = thumb_border_top - spacing - pad_v
+                                mp.commandv("script-message-to", "thumbfast", "thumb", hover_sec, thumb_x, math.floor(thumb_y / r_h + 0.5))
                             end
+
+                            -- Keep tooltips anchored to the thumbnail center even at window edges
+                            tx = (thumb_x + thumbfast.width / 2) * r_w
+                            an = 2
+
+                            -- Advance anchor system above the thumbnail
+                            current_y = thumb_y - border - gap
                         end
+
+                        local chapter_tooltip_y = current_y - pad_v
 
                         -- chapter tooltip
                         if chapter_text and osd_w and r_w > 0 and chapter_tooltip_y then
@@ -1216,7 +1211,7 @@ local function render_elements(master_ass)
                         an = 8
                     end
 
-                    local osd_w = mp.get_property_number("osd-width")
+                    local osd_w = mp.get_osd_size()
                     local r_w = get_virt_scale_factor()
                     if osd_w and r_w > 0 then
                         local tooltip_width = estimate_text_width(tooltiplabel, element.tooltip_style)
