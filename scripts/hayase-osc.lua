@@ -221,6 +221,7 @@ local state = {
     no_video = false,
     playlist_count = 0,
     playlist_pos_1 = 0,
+    duration = nil,
     pause = false,
     volume = 0,
     mute = false,
@@ -458,10 +459,7 @@ local function get_seekbar_segments(w)
         return seekbar_segments_cache.result
     end
 
-    local duration = mp.get_property_number("duration", 0)
-    local chapters = state.chapter_list
-
-    if duration <= 0 or not chapters or #chapters == 0 then
+    if (state.duration or 0) <= 0 or not state.chapter_list[1] then
         local result = {{x = 0, w = w, start_p = 0, end_p = 100}}
         seekbar_segments_cache.w = w
         seekbar_segments_cache.result = result
@@ -469,12 +467,12 @@ local function get_seekbar_segments(w)
     end
 
     local times = {0}
-    for _, c in ipairs(chapters) do
-        if c.time > 0 and c.time < duration then -- skip chapter at 0:00
+    for _, c in ipairs(state.chapter_list) do
+        if c.time > 0 and c.time < state.duration then -- skip chapter at 0:00
             table.insert(times, c.time)
         end
     end
-    table.insert(times, duration)
+    table.insert(times, state.duration)
 
     local gap = 4
     local num_segs = #times - 1
@@ -486,12 +484,12 @@ local function get_seekbar_segments(w)
     for i = 1, num_segs do
         local t_start = times[i]
         local t_end = times[i+1]
-        local seg_w = ((t_end - t_start) / duration) * avail_w
+        local seg_w = ((t_end - t_start) / state.duration) * avail_w
 
         table.insert(segments, {
             x = current_x, w = seg_w,
-            start_p = (t_start / duration) * 100,
-            end_p = (t_end / duration) * 100
+            start_p = (t_start / state.duration) * 100,
+            end_p = (t_end / state.duration) * 100
         })
         current_x = current_x + seg_w + gap
     end
@@ -1055,9 +1053,8 @@ local function render_elements(master_ass)
 
                         if state.osd_dimensions.w and r_w > 0 then
                             if element.name == "seekbar" then
-                                local dur = mp.get_property_number("duration", 0)
-                                if dur > 0 then
-                                    local ch = get_chapter(slider_pos * dur / 100)
+                                if state.duration then
+                                    local ch = get_chapter(slider_pos * state.duration / 100)
                                     if ch and ch.title and ch.title ~= "" then
                                         chapter_text = ch.title
                                         chapter_width = estimate_text_width(chapter_text, slider_lo.tooltip_style)
@@ -1089,9 +1086,7 @@ local function render_elements(master_ass)
 
                         if element.name == "seekbar" and not thumbfast.disabled and state.osd_dimensions.w then
                             local border = 2
-                            local hover_sec = 0
-                            local hover_dur = mp.get_property_number("duration")
-                            if hover_dur then hover_sec = hover_dur * slider_pos / 100 end
+                            local hover_sec = (state.duration or 0) * (slider_pos / 100)
 
                             local thumb_margin_x = 18 / r_w
                             local thumb_x = math.min(state.osd_dimensions.w - thumbfast.width - thumb_margin_x, math.max(thumb_margin_x, tx / r_w - thumbfast.width / 2))
@@ -1455,10 +1450,9 @@ local function layout_default()
     end
 
     -- Time codes width calculation
-    local dur = mp.get_property_number("duration", 0)
     local playback_time = mp.get_property_number("playback-time", 0)
-    local show_hours = (state.tc_left_rem and dur or playback_time) >= 3600
-    local show_durhours = dur >= 3600
+    local show_hours = (state.tc_left_rem and state.duration or 0 or playback_time) >= 3600
+    local show_durhours = state.duration or 0 >= 3600
     local time_codes_width = 90 + (state.tc_ms and 60 or 0) + (state.tc_left_rem and 15 or 0) +
         (show_hours and 20 or 0) + (show_durhours and 20 or 0)
 
@@ -1607,13 +1601,12 @@ end
 
 local function build_cache_seek_ranges()
     if not user_opts.seekrange or not cache_enabled() then return nil end
-    local duration = mp.get_property_number("duration")
-    if not duration or duration <= 0 then return nil end
+    if not state.duration or state.duration <= 0 then return nil end
     local nranges = {}
     for _, range in ipairs(state.demuxer_cache_state["seekable-ranges"]) do
         nranges[#nranges + 1] = {
-            ["start"] = 100 * range["start"] / duration,
-            ["end"]   = 100 * range["end"]   / duration,
+            ["start"] = 100 * range["start"] / state.duration,
+            ["end"]   = 100 * range["end"]   / state.duration,
         }
     end
     return nranges
@@ -1865,8 +1858,7 @@ local function create_elements()
         return mp.get_property_number("percent-pos")
     end
     ne.slider.tooltip_f = function (pos)
-        local duration = mp.get_property_number("duration")
-        if duration and pos then return format_time(duration * (pos / 100)) end
+        if state.duration and pos then return format_time(state.duration * (pos / 100)) end
         return ""
     end
     ne.slider.seek_ranges_f = build_cache_seek_ranges
@@ -1915,10 +1907,9 @@ local function create_elements()
         seekbar_unpause(element)
     end
     ne.eventresponder["mbtn_right_down"] = function (element)
-        local dur = mp.get_property_number("duration", 0)
-        if not state.chapter_list or dur <= 0 then return end
+        if not state.chapter_list or state.duration <= 0 then return end
 
-        local target = (get_slider_value(element) / 100) * dur
+        local target = (get_slider_value(element) / 100) * state.duration
         local best_idx, min_diff = 1, math.huge
 
         for i, c in ipairs(state.chapter_list) do
@@ -1952,10 +1943,10 @@ local function create_elements()
 
     -- Time codes display
     ne = new_element("time_codes", "button")
-    ne.visible = mp.get_property_number("duration", 0) > 0
+    ne.visible = state.duration ~= nil
     ne.content = function()
         local playback_time = mp.get_property_number("playback-time", 0)
-        local duration = mp.get_property_number("duration", 0)
+        local duration = state.duration
 
         if duration <= 0 then return "--:--" end
 
@@ -2407,25 +2398,6 @@ tick = function()
     end
 end
 
--- duration is observed for the sole purpose of updating chapter markers
--- positions. live streams with chapters are very rare, and the update is also
--- expensive (with request_init), so it's only observed when we have chapters.
-local function on_duration() request_init() end
-
-local duration_watched = false
-local function update_duration_watch()
-    local want_watch = #state.chapter_list > 0
-
-    if want_watch ~= duration_watched then
-        if want_watch then
-            mp.observe_property("duration", "native", on_duration)
-        else
-            mp.unobserve_property(on_duration)
-        end
-        duration_watched = want_watch
-    end
-end
-
 local function set_tick_delay(_, display_fps)
     -- may be nil if unavailable or 0 fps is reported
     if not display_fps or not user_opts.tick_delay_follow_display_fps then
@@ -2442,7 +2414,7 @@ mp.register_event("file-loaded", function()
     request_tick()
 
     if user_opts.automatickeyframemode then
-        user_opts.seekbarkeyframes = mp.get_property_number("duration", 0) > user_opts.automatickeyframelimit
+        user_opts.seekbarkeyframes = state.duration or 0 > user_opts.automatickeyframelimit
     end
     if user_opts.osc_on_start then
         show_osc()
@@ -2454,7 +2426,6 @@ observe_cached("playlist-count", request_init)
 observe_cached("playlist-pos-1", request_init)
 observe_cached("chapter-list", function ()
     table.sort(state.chapter_list, function(a, b) return a.time < b.time end)
-    update_duration_watch()
     request_init()
 end)
 mp.register_event("seek", function()
@@ -2464,6 +2435,11 @@ mp.register_event("seek", function()
     end
     if user_opts.osc_on_seek then
         show_osc()
+    end
+end)
+observe_cached("duration", function ()
+    if user_opts.livemarkers and state.chapter_list[1] then
+        request_init()
     end
 end)
 mp.observe_property("seeking", "native", function(_, seeking)
@@ -2695,7 +2671,6 @@ opt.read_options(user_opts, "hayase-osc", function(changed)
     end
     request_tick()
     visibility_mode(user_opts.visibility, true)
-    update_duration_watch()
     request_init()
 end)
 
@@ -2704,7 +2679,6 @@ set_osc_styles()
 set_time_styles(true, true)
 set_tick_delay()
 visibility_mode(user_opts.visibility, true)
-update_duration_watch()
 
 set_virt_mouse_area(0, 0, 0, 0, "input")
 set_virt_mouse_area(0, 0, 0, 0, "window-controls")
