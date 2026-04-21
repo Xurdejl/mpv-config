@@ -191,6 +191,7 @@ local state = {
     touch_time = nil,                         -- time of last invocation (last touch event)
     touch_points = {},                        -- current touch points
     osc_visible = false,
+    wc_visible = false,
     ani_start = nil,                          -- time when the animation started
     ani_type = nil,                           -- current type of animation
     animation = nil,                          -- current animation alpha
@@ -213,36 +214,36 @@ local state = {
     idle_active = false,
     audio_track_count = 0,
     sub_track_count = 0,
-    playlist_count = 0,
-    playlist_pos = 0,
     no_video = false,
+    playlist_count = 0,
+    playlist_pos_1 = 0,
+    pause = false,
+    volume = 0,
+    mute = false,
+    osd_dimensions = { w = 0, h = 0, aspect = 0 },
+    osd_scale_by_window = false,
     file_loaded = false,
     enabled = true,
     input_enabled = true,
     showhide_enabled = false,
     windowcontrols_buttons = false,
-    wc_visible = false,
     border = true,
     window_maximized = false,
     osd = mp.create_osd_overlay("ass-events"),
     logo_osd = mp.create_osd_overlay("ass-events"),
-    new_file_flag = false,                  -- flag to detect new file starts
     temp_visibility_mode = nil,             -- store temporary visibility mode state
     chapter_list = {},                      -- sorted by time
     chapter = -1,                           -- current chapter index
     visibility_modes = {},                  -- visibility_modes to cycle through
-    mute = false,
-    pause = false,
     eof_reached = false,
-    volume = 0,
     ontop = false,
     speed = 1,
     file_loop = false,
     slider_pos = 0,
     initial_border = mp.get_property("border"),
     initial_title_bar = mp.get_property("title-bar"),
-    playtime_hour_force_init = false,       -- used to force request_init() once
     playing_and_seeking = false,
+    playtime_hour_force_init = false,       -- used to force request_init() once
     persistent_seekbar_element = nil,
     persistent_progress_toggle = user_opts.persistent_progress,
 }
@@ -334,11 +335,11 @@ end
 
 -- scale factor for translating between real and virtual ASS coordinates
 local function get_virt_scale_factor()
-    local w, h = mp.get_osd_size()
-    if w <= 0 or h <= 0 then
+    if state.osd_dimensions.w == 0 or state.osd_dimensions.h == 0 then
         return 0, 0
     end
-    return osc_param.playresx / w, osc_param.playresy / h
+    return osc_param.playresx / state.osd_dimensions.w,
+           osc_param.playresy / state.osd_dimensions.h
 end
 
 local function recently_touched()
@@ -1041,7 +1042,6 @@ local function render_elements(master_ass)
                         local ty = element.hitbox.y1 - 8
                         if an ~= 2 then ty = ty + elem_geo.h / 2 end
                         local tx = get_virt_mouse_pos()
-                        local osd_w = mp.get_osd_size()
                         local r_w, r_h = get_virt_scale_factor()
 
                         local tooltip_width = estimate_text_width(tooltiplabel, slider_lo.tooltip_style)
@@ -1049,7 +1049,7 @@ local function render_elements(master_ass)
                         local chapter_text = nil
                         local chapter_width = 0
 
-                        if osd_w and r_w > 0 then
+                        if state.osd_dimensions.w and r_w > 0 then
                             -- Only attempt to fetch and measure chapter logic if this is the seekbar
                             if element.name == "seekbar" then
                                 local dur = mp.get_property_number("duration", 0)
@@ -1085,13 +1085,13 @@ local function render_elements(master_ass)
                         -- Anchor above tooltip: ty (baseline) - fs (height) - pad_v (padding) - gap
                         local current_y = ty - fs - pad_v - gap
 
-                        if element.thumbnailable and not thumbfast.disabled and osd_w then
+                        if element.thumbnailable and not thumbfast.disabled and state.osd_dimensions.w then
                             local hover_sec = 0
                             local hover_dur = mp.get_property_number("duration")
                             if hover_dur then hover_sec = hover_dur * slider_pos / 100 end
 
                             local thumb_margin_x = 18 / r_w
-                            local thumb_x = math.min(osd_w - thumbfast.width - thumb_margin_x, math.max(thumb_margin_x, tx / r_w - thumbfast.width / 2))
+                            local thumb_x = math.min(state.osd_dimensions.w - thumbfast.width - thumb_margin_x, math.max(thumb_margin_x, tx / r_w - thumbfast.width / 2))
                             thumb_x = math.floor(thumb_x + 0.5)
 
                             local thumb_y = current_y - border - (thumbfast.height * r_h)
@@ -1119,7 +1119,7 @@ local function render_elements(master_ass)
                         local chapter_tooltip_y = current_y - pad_v
 
                         -- chapter tooltip
-                        if chapter_text and osd_w and r_w > 0 and chapter_tooltip_y then
+                        if chapter_text and state.osd_dimensions.w and r_w > 0 and chapter_tooltip_y then
                             elem_ass:new_event()
                             elem_ass:pos(tx - chapter_width / 2 - pad_h, chapter_tooltip_y - fs - pad_v)
                             elem_ass:an(7)
@@ -1211,9 +1211,8 @@ local function render_elements(master_ass)
                         an = 8
                     end
 
-                    local osd_w = mp.get_osd_size()
                     local r_w = get_virt_scale_factor()
-                    if osd_w and r_w > 0 then
+                    if state.osd_dimensions.w and r_w > 0 then
                         local tooltip_width = estimate_text_width(tooltiplabel, element.tooltip_style)
                         local margin = 10 * r_w
                         local half_width = tooltip_width / 2
@@ -1619,11 +1618,11 @@ local function build_cache_seek_ranges()
 end
 
 local function setup_canvas()
-    local _, display_h, display_aspect = mp.get_osd_size()
+    local dimensions = state.osd_dimensions
 
-    osc_param.playresy = display_h
-    if display_aspect > 0 then
-        osc_param.display_aspect = display_aspect
+    osc_param.playresy = dimensions.h > 0 and dimensions.h or 720
+    if dimensions.aspect > 0 then
+        osc_param.display_aspect = dimensions.aspect
     end
     osc_param.playresx = osc_param.playresy * osc_param.display_aspect
 end
@@ -1631,10 +1630,6 @@ end
 local function create_elements()
     state.active_element = nil
     elements = {}
-
-    local pl_count = state.playlist_count
-    local have_pl = state.playlist_pos + 1
-    local pl_pos = mp.get_property_number("playlist-pos", 0) + 1
 
     local ne
 
@@ -1713,14 +1708,14 @@ local function create_elements()
     -- prev
     ne = new_element("playlist_prev", "button")
     ne.hover_effect = true
-    ne.visible = pl_pos > 1
+    ne.visible = state.playlist_pos_1 > 1
     ne.content = icons.previous
     bind_mouse_buttons("playlist_prev")
 
     --next
     ne = new_element("playlist_next", "button")
     ne.hover_effect = true
-    ne.visible = have_pl and (pl_pos < pl_count)
+    ne.visible = state.playlist_count > 1 and (state.playlist_pos_1 < state.playlist_count)
     ne.content = icons.next
     bind_mouse_buttons("playlist_next")
 
@@ -2178,18 +2173,17 @@ end
 
 local function render()
     msg.trace("rendering")
-    local current_screen_size_x, current_screen_size_y = mp.get_osd_size()
     local mouse_x, mouse_y = get_virt_mouse_pos()
     local now = mp.get_time()
 
     -- check if display changed, if so request reinit
-    if state.screen_size_x ~= current_screen_size_x
-        or state.screen_size_y ~= current_screen_size_y then
+    if state.screen_size_x ~= state.osd_dimensions.w
+        or state.screen_size_y ~= state.osd_dimensions.h then
 
         request_init_resize()
 
-        state.screen_size_x = current_screen_size_x
-        state.screen_size_y = current_screen_size_y
+        state.screen_size_x = state.osd_dimensions.w
+        state.screen_size_y = state.osd_dimensions.h
     end
 
     -- init management
@@ -2318,12 +2312,11 @@ local function render()
 end
 
 local function render_logo()
-    local _, _, display_aspect = mp.get_osd_size()
-    if display_aspect == 0 then
+    if state.osd_dimensions.aspect == 0 then
         return
     end
     local display_h = 360
-    local display_w = display_h * display_aspect
+    local display_w = display_h * state.osd_dimensions.aspect
     -- logo is rendered at 2^(6-1) = 32 times resolution with size 1800x1800
     local icon_x, icon_y = (display_w - 1800 / 32) / 2, (display_h - 1800 / 32) / 2
     local line_prefix = ("{\\rDefault\\an7\\1a&H00&\\bord0\\shad0\\pos(%f,%f)}"):format(icon_x,
@@ -2442,7 +2435,7 @@ local function set_tick_delay(_, display_fps)
 end
 
 mp.register_event("file-loaded", function()
-    state.new_file_flag = true
+    state.file_loaded = true
     state.file_loaded = true
     state.no_video = mp.get_property_native("current-tracks/video") == nil
     request_tick()
@@ -2457,15 +2450,15 @@ end)
 mp.register_event("start-file", request_init)
 mp.observe_property("track-list", "native", update_tracklist)
 observe_cached("playlist-count", request_init)
-observe_cached("playlist-pos", request_init)
+observe_cached("playlist-pos-1", request_init)
 observe_cached("chapter-list", function ()
     table.sort(state.chapter_list, function(a, b) return a.time < b.time end)
     update_duration_watch()
     request_init()
 end)
 mp.register_event("seek", function()
-    if state.new_file_flag then
-        state.new_file_flag = false
+    if state.file_loaded then
+        state.file_loaded = false
         return
     end
     if user_opts.osc_on_seek then
@@ -2490,26 +2483,19 @@ mp.add_hook("on_unload", 50, function()
 end)
 
 mp.observe_property("display-fps", "number", set_tick_delay)
+observe_cached("pause", request_tick)
+observe_cached("speed", request_tick)
+observe_cached("volume", request_tick)
+observe_cached("mute", request_tick)
+observe_cached("chapter", request_tick)
+observe_cached("ontop", request_tick)
+observe_cached("eof-reached", request_tick)
 observe_cached("demuxer-cache-state", request_tick)
 mp.observe_property("vo-configured", "bool", request_tick)
 mp.observe_property("playback-time", "number", request_tick)
-mp.observe_property("osd-dimensions", "native", function()
-    -- (we could use the value instead of re-querying it all the time, but then
-    --  we might have to worry about property update ordering)
-    request_init_resize()
-end)
-mp.observe_property("osd-scale-by-window", "native", request_init_resize)
-mp.observe_property("touch-pos", "native", handle_touch)
-observe_cached("volume", request_tick)
-observe_cached("mute", request_tick)
-observe_cached("eof-reached", request_tick)
-observe_cached("ontop", request_tick)
-observe_cached("speed", request_tick)
-observe_cached("chapter", request_tick)
--- ensure compatibility with auto loop scripts
-mp.observe_property("loop-file", "bool", function(_, val)
-    state.file_loop = (val ~= false)
-end)
+observe_cached("osd-dimensions", request_init_resize)
+observe_cached("osd-scale-by-window", request_init_resize)
+mp.observe_property('touch-pos', 'native', handle_touch)
 
 -- mouse show/hide bindings
 mp.set_key_bindings({
