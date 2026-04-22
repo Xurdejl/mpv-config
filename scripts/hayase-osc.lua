@@ -1050,7 +1050,6 @@ local function render_elements(master_ass)
                         local chapter_width = 0
 
                         if state.osd_dimensions.w and r_w > 0 then
-                            -- Only attempt to fetch and measure chapter logic if this is the seekbar
                             if element.name == "seekbar" then
                                 local dur = mp.get_property_number("duration", 0)
                                 if dur > 0 then
@@ -1062,8 +1061,8 @@ local function render_elements(master_ass)
                                 end
                             end
 
-                            -- Clamping layer ensures horizontal boundaries are strictly respected
-                            if slider_lo.adjust_tooltip or (element.thumbnailable and not thumbfast.disabled) then
+                            -- Prevent tooltip from overflowing screen edges
+                            if slider_lo.adjust_tooltip or (element.name == "seekbar" and not thumbfast.disabled) then
                                 local max_text_width = math.max(tooltip_width, chapter_width)
                                 local margin = 10 * r_w
                                 local half_width = max_text_width / 2
@@ -1080,12 +1079,12 @@ local function render_elements(master_ass)
                         local pad_h, pad_v = 4, 4
                         local fs = FONT_SIZE_MD
                         local gap = 5
-                        local border = 2
 
                         -- Anchor above tooltip: ty (baseline) - fs (height) - pad_v (padding) - gap
                         local current_y = ty - fs - pad_v - gap
 
-                        if element.thumbnailable and not thumbfast.disabled and state.osd_dimensions.w then
+                        if element.name == "seekbar" and not thumbfast.disabled and state.osd_dimensions.w then
+                            local border = 2
                             local hover_sec = 0
                             local hover_dur = mp.get_property_number("duration")
                             if hover_dur then hover_sec = hover_dur * slider_pos / 100 end
@@ -1112,7 +1111,7 @@ local function render_elements(master_ass)
                             tx = (thumb_x + thumbfast.width / 2) * r_w
                             an = 2
 
-                            -- Advance anchor system above the thumbnail
+                            -- Advance anchor above the thumbnail
                             current_y = thumb_y - border - gap
                         end
 
@@ -1153,7 +1152,7 @@ local function render_elements(master_ass)
                         elem_ass:append(slider_lo.tooltip_style)
                         ass_append_alpha(elem_ass, slider_lo.alpha, 0)
                         elem_ass:append(tooltiplabel)
-                    elseif element.thumbnailable and thumbfast.available then
+                    elseif element.name == "seekbar" and thumbfast.available then
                         mp.commandv("script-message-to", "thumbfast", "clear")
                     end
                 end
@@ -1282,7 +1281,6 @@ local function new_element(name, type)
 
     if type == "slider" then
         elements[name].slider = {min = {value = 0}, max = {value = 100}}
-        elements[name].thumbnailable = false
     end
 
     return elements[name]
@@ -1858,7 +1856,6 @@ local function create_elements()
     --seekbar
     ne = new_element("seekbar", "slider")
     ne.enabled = mp.get_property("percent-pos") ~= nil
-    ne.thumbnailable = true
     ne.slider.pos_f = function ()
         if state.eof_reached then return 100 end
         return mp.get_property_number("percent-pos")
