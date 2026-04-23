@@ -148,7 +148,6 @@ local thumbfast = {
 }
 
 local tick_delay = 1 / 60
-local window_control_box_width = 150
 local is_december = os.date("*t").month == 12
 
 local function osc_color_convert(color)
@@ -1329,7 +1328,7 @@ local function window_titlebar()
         h = 30,
     }
 
-    local controls_w = window_control_box_width
+    local controls_w = 150
     local controls_x = geo.w - controls_w
 
     local title_x = geo.x + 15
