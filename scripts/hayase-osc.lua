@@ -100,7 +100,12 @@ local user_opts = {
     sub_track_wheel_up_command = "cycle sub down",
 
     -- Mouse commands: fullscreen
-    fullscreen_mbtn_left_command = "cycle fullscreen"
+    fullscreen_mbtn_left_command = "cycle fullscreen",
+
+    -- Mouse commands: window controls
+    close_mbtn_left_command = "quit",
+    maximize_mbtn_left_command = "cycle ${?fullscreen==yes:fullscreen}${!fullscreen==yes:window-maximized}",
+    minimize_mbtn_left_command = "cycle window-minimized",
 }
 
 local osc_param = {                  -- calculated by osc_init()
@@ -1639,16 +1644,7 @@ local function create_elements()
     ne.held_color = "#E63A48"
     ne.hover_alpha = 0
     ne.content = icons.window.close
-    ne.eventresponder["mbtn_left_up"] = function () mp.commandv("quit") end
-
-    -- Minimize: 🗕
-    ne = new_element("minimize", "button")
-    ne.is_wc = true
-    ne.hover_effect = true
-    ne.hover_color = "#FFFFFF"
-    ne.held_color = "#D9D9D9"
-    ne.content = icons.window.minimize
-    ne.eventresponder["mbtn_left_up"] = function () mp.commandv("cycle", "window-minimized") end
+    bind_mouse_buttons("close")
 
     -- Maximize: 🗖 /🗗
     ne = new_element("maximize", "button")
@@ -1657,7 +1653,16 @@ local function create_elements()
     ne.hover_color = "#FFFFFF"
     ne.held_color = "#D9D9D9"
     ne.content = (state.window_maximized or state.fullscreen) and icons.window.unmaximize or icons.window.maximize
-    ne.eventresponder["mbtn_left_up"] = function () mp.commandv("cycle", (state.fullscreen and "fullscreen" or "window-maximized")) end
+    bind_mouse_buttons("maximize")
+
+    -- Minimize: 🗕
+    ne = new_element("minimize", "button")
+    ne.is_wc = true
+    ne.hover_effect = true
+    ne.hover_color = "#FFFFFF"
+    ne.held_color = "#D9D9D9"
+    ne.content = icons.window.minimize
+    bind_mouse_buttons("minimize")
 
     -- Window Title
     ne = new_element("window_title", "button")
