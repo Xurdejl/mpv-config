@@ -199,7 +199,6 @@ local state = {
     ani_start = nil,                          -- time when the animation started
     ani_type = nil,                           -- current type of animation
     animation = nil,                          -- current animation alpha
-    mouse_down_counter = 0,                   -- used for softrepeat
     active_element = nil,                     -- nil = none, 0 = background, 1+ = see elements[]
     active_event_source = nil,                -- the "button" that issued the current event
     tc_left_rem = not user_opts.timecurrent,  -- if the left timecode should display current or remaining time
@@ -967,13 +966,6 @@ local function render_elements(master_ass)
             if element.eventresponder.render ~= nil then
                 element.eventresponder.render(element)
             end
-            if mouse_hit(element) then
-                if element.softrepeat and state.mouse_down_counter >= 15
-                    and state.mouse_down_counter % 5 == 0 then
-                    element.eventresponder[state.active_event_source.."_down"](element)
-                end
-                state.mouse_down_counter = state.mouse_down_counter + 1
-            end
         end
 
         local elem_ass = assdraw.ass_new()
@@ -1034,7 +1026,6 @@ local function render_elements(master_ass)
                     local force_seek_tooltip = element.name == "seekbar"
                         and element.eventresponder["mbtn_left_down"]
                         and element.state.mbtnleft
-                        and state.mouse_down_counter > 0
                         and state.playing_and_seeking
 
                     if mouse_hit(element) or force_seek_tooltip then
@@ -1273,7 +1264,6 @@ local function new_element(name, type)
     elements[name].eventresponder = {}
     elements[name].visible = true
     elements[name].enabled = true
-    elements[name].softrepeat = false
     elements[name].hover_effect = false
     elements[name].state = {}
     elements[name].is_wc = false
@@ -2112,7 +2102,6 @@ local function process_event(source, what)
             end
         end
         state.active_element = nil
-        state.mouse_down_counter = 0
     elseif source == "mouse_move" then
         state.mouse_in_window = true
 
