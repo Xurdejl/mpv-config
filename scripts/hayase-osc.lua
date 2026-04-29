@@ -40,9 +40,6 @@ local user_opts = {
     audio_button = false,                  -- show audio track button (only if more than 1 audio track exists)
 
     seekrange = true,                      -- show seek range overlay
-    seekbarkeyframes = false,              -- use keyframes when dragging the seekbar
-    automatickeyframemode = true,          -- automatically set keyframes for the seekbar based on video length
-    automatickeyframelimit = 600,          -- videos longer than this (in seconds) will have keyframes on the seekbar
     persistent_progress = false,           -- always show a small progress line at the bottom of the screen
     persistent_buffer = false,             -- show cached buffer status in the persistent progress line
 
@@ -541,6 +538,61 @@ end
 local function get_slider_value(element)
     return get_slider_value_at(element, get_virt_mouse_pos())
 end
+
+local MOUSE_HISTORY_SIZE = 10
+local MOUSE_HISTORY_LOOKBACK = 0.1
+local mouse_history = {}
+local mouse_history_idx = 0
+local mouse_history_count = 0
+
+local function mouse_history_push(x, y)
+    local now = mp.get_time()
+    mouse_history_idx = (mouse_history_idx % MOUSE_HISTORY_SIZE) + 1
+    local entry = mouse_history[mouse_history_idx]
+    if entry then
+        entry.x, entry.y, entry.time = x, y, now
+    else
+        mouse_history[mouse_history_idx] = {x = x, y = y, time = now}
+    end
+    if mouse_history_count < MOUSE_HISTORY_SIZE then
+        mouse_history_count = mouse_history_count + 1
+    end
+end
+
+local function mouse_history_reset()
+    mouse_history_idx = 0
+    mouse_history_count = 0
+end
+
+local function get_mouse_velocity_x()
+    if mouse_history_count == 0 then return 0 end
+    local now = mp.get_time()
+    local current = mouse_history[mouse_history_idx]
+    local snap = nil
+    for i = 1, mouse_history_count - 1 do
+        local idx = ((mouse_history_idx - i - 1) % MOUSE_HISTORY_SIZE) + 1
+        local entry = mouse_history[idx]
+        if entry and (now - entry.time) > MOUSE_HISTORY_LOOKBACK then
+            snap = entry
+            break
+        end
+    end
+    if not snap then
+        local oldest_offset = mouse_history_count - 1
+        local oldest_idx = ((mouse_history_idx - oldest_offset - 1) % MOUSE_HISTORY_SIZE) + 1
+        snap = mouse_history[oldest_idx]
+    end
+    if not snap then return 0 end
+    local time_diff = now - snap.time
+    if time_diff < 0.001 then return 0 end
+    return (current.x - snap.x) / time_diff
+end
+
+-- Seek mode threshold in video-seconds per real-second; above this, use keyframes.
+local VELOCITY_THRESHOLD = 30
+
+local SEEK_EXACT = "absolute-percent+exact"
+local SEEK_KEYFRAMES = "absolute-percent+keyframes"
 
 -- multiplies two alpha values
 local function mult_alpha(alpha_a, alpha_b)
@@ -1843,8 +1895,12 @@ local function create_elements()
     --seekbar
     ne = new_element("seekbar", "slider")
     ne.enabled = mp.get_property("percent-pos") ~= nil
+    local seekbar_el = ne
     ne.slider.pos_f = function ()
         if state.eof_reached then return 100 end
+        if seekbar_el.state.mbtnleft and seekbar_el.state.drag_target_pos then
+            return seekbar_el.state.drag_target_pos
+        end
         return mp.get_property_number("percent-pos")
     end
     ne.slider.tooltip_f = function (pos)
@@ -1859,6 +1915,7 @@ local function create_elements()
             mp.commandv("cycle", "pause")
             state.playing_and_seeking = true
         end
+        mouse_history_reset()
     end
 
     local function seekbar_unpause(element)
@@ -1868,34 +1925,44 @@ local function create_elements()
             end
             state.playing_and_seeking = false
         end
+        mouse_history_reset()
     end
 
-    ne.eventresponder["mouse_move"] = function (element)
+    local function seekbar_get_seek_flags(element)
+        if state.no_video then return SEEK_EXACT end
+        local seek_width = element.hitbox and (element.hitbox.x2 - element.hitbox.x1) or 1
+        if seek_width < 1 then seek_width = 1 end
+        local velocity_x = get_mouse_velocity_x()
+        local time_per_sec = math.abs(velocity_x) / seek_width * (state.duration or 0)
+        return time_per_sec > VELOCITY_THRESHOLD and SEEK_KEYFRAMES or SEEK_EXACT
+    end
+
+    ne.eventresponder["mouse_move"] = function(element)
         if not element.state.mbtnleft then return end
         local seekto = get_slider_value(element)
+        element.state.drag_target_pos = seekto
         if element.state.lastseek == nil or element.state.lastseek ~= seekto then
-            local flags = "absolute-percent"
-            if not user_opts.seekbarkeyframes then
-                flags = flags .. "+exact"
-            end
-            mp.commandv("seek", seekto, flags)
+            mp.commandv("seek", seekto, seekbar_get_seek_flags(element))
             element.state.lastseek = seekto
         end
     end
-    ne.eventresponder["mbtn_left_down"] = function (element)
+    ne.eventresponder["mbtn_left_down"] = function(element)
         element.state.mbtnleft = true
+        local pos = get_slider_value(element)
+        element.state.drag_target_pos = pos
         seekbar_pause(element)
-        mp.commandv("seek", get_slider_value(element), "absolute-percent+exact")
+        mp.commandv("seek", pos, SEEK_EXACT)
     end
-    ne.eventresponder["shift+mbtn_left_down"] = function (element)
-        element.state.mbtnleft = true
-        seekbar_pause(element)
-        mp.commandv("seek", get_slider_value(element), "absolute-percent")
+    ne.eventresponder["mbtn_left_up"] = function(element)
+        if element.state.mbtnleft then
+            local final_pos = element.state.drag_target_pos or get_slider_value(element)
+            element.state.mbtnleft = false
+            element.state.drag_target_pos = nil
+            seekbar_unpause(element)
+            mp.commandv("seek", final_pos, SEEK_EXACT)
+        end
     end
-    ne.eventresponder["mbtn_left_up"] = function (element)
-        element.state.mbtnleft = false
-        seekbar_unpause(element)
-    end
+
     ne.eventresponder["mbtn_right_down"] = function (element)
         if not state.chapter_list or state.duration <= 0 then return end
 
@@ -1912,6 +1979,7 @@ local function create_elements()
     end
     ne.eventresponder["reset"] = function (element)
         element.state.lastseek = nil
+        element.state.drag_target_pos = nil
         if element.state.mbtnleft then
             element.state.mbtnleft = false
             seekbar_unpause(element)
@@ -2106,6 +2174,8 @@ local function process_event(source, what)
         state.mouse_in_window = true
 
         local mouse_x, mouse_y = get_virt_mouse_pos()
+        local real_x, real_y = mp.get_mouse_pos()
+        mouse_history_push(real_x, real_y)
         -- init last pos on first mouse_move for comparison below to be valid
         if state.last_mouse_x == nil then
             state.last_mouse_x, state.last_mouse_y = mouse_x, mouse_y
@@ -2398,13 +2468,9 @@ end
 
 mp.register_event("file-loaded", function()
     state.file_loaded = true
-    state.file_loaded = true
     state.no_video = mp.get_property_native("current-tracks/video") == nil
     request_tick()
 
-    if user_opts.automatickeyframemode then
-        user_opts.seekbarkeyframes = state.duration or 0 > user_opts.automatickeyframelimit
-    end
     if user_opts.osc_on_start then
         show_osc()
     end
