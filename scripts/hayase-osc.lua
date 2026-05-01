@@ -1207,19 +1207,6 @@ local function render_elements(master_ass)
                 buttontext = element.content -- text objects
             end
 
-            local maxchars = element.layout.button.maxchars
-            if maxchars ~= nil and #buttontext > maxchars then
-                local max_ratio = 1.25  -- up to 25% more chars while shrinking
-                local limit = math.max(0, math.floor(maxchars * max_ratio) - 3)
-                if #buttontext > limit then
-                    while (#buttontext > limit) do
-                        buttontext = buttontext:gsub(".[\128-\191]*$", "")
-                    end
-                    buttontext = buttontext .. "..."
-                end
-                buttontext = string.format("{\\fscx%f}", (maxchars/#buttontext)*100) .. buttontext
-            end
-
             local is_held = state.active_element == n and mouse_hit(element)
             if is_held and not element.hover_effect then
                 buttontext = "{\\alpha&H80&}" .. buttontext
@@ -1336,11 +1323,7 @@ local function add_layout(name)
         elements[name].layout.layer = 50
         elements[name].layout.alpha = {[1] = 0, [2] = 255, [3] = 255, [4] = 255}
 
-        if elements[name].type == "button" then
-            elements[name].layout.button = {
-                maxchars = nil,
-            }
-        elseif elements[name].type == "slider" then
+        if elements[name].type == "slider" then
             -- slider defaults
             elements[name].layout.slider = {
                 border = 1,
