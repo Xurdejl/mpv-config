@@ -1606,16 +1606,18 @@ local function osc_visible(visible)
 end
 
 local function bind_mouse_buttons(element_name)
-    for _, button in ipairs({"mbtn_left", "mbtn_right"}) do
-        local command = user_opts[element_name .. "_" .. button .. "_command"]
-        if command ~= nil and command ~= "" and command ~= "ignore" then
-            elements[element_name].eventresponder[button .. "_up"] = function() mp.command(command) end
+    for _, button in ipairs({"mbtn_left", "mbtn_mid", "mbtn_right"}) do
+        local up_command = user_opts[element_name .. "_" .. button .. "_command"]
+        if up_command ~= nil and up_command ~= "" and up_command ~= "ignore" then
+            elements[element_name].eventresponder[button .. "_up"] = function() mp.command(up_command) end
+        end
+
+        local down_command = user_opts[element_name .. "_" .. button .. "_down_command"]
+        if down_command ~= nil and down_command ~= "" and down_command ~= "ignore" then
+            elements[element_name].eventresponder[button .. "_down"] = function() mp.command(down_command) end
         end
     end
-    local command = user_opts[element_name .. "_mbtn_mid_command"]
-    if command ~= nil and command ~= "" and command ~= "ignore" then
-        elements[element_name].eventresponder["mbtn_mid_up"] = function() mp.command(command) end
-    end
+
     for _, button in ipairs({"wheel_up", "wheel_down"}) do
         local command = user_opts[element_name .. "_" .. button .. "_command"]
         if command ~= nil and command ~= "" and command ~= "ignore" then
