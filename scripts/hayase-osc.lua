@@ -1986,7 +1986,7 @@ local function create_elements()
 
     -- Time codes display
     ne = new_element("time_codes", "button")
-    ne.visible = state.duration ~= nil
+    ne.visible = state.duration and state.duration > 0
     ne.content = function()
         local playback_time = mp.get_property_number("playback-time", 0)
         local duration = state.duration
