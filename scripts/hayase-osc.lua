@@ -731,6 +731,29 @@ end
 --
 local elements = {}
 
+local function update_slider(element)
+    local elem_geo = element.layout.geometry
+    local slider_lo = element.layout.slider
+
+    -- calculate positions of min and max points
+    element.slider.min.ele_pos = slider_lo.border
+    element.slider.max.ele_pos = elem_geo.w - element.slider.min.ele_pos
+    element.slider.min.glob_pos = element.hitbox.x1 + element.slider.min.ele_pos
+    element.slider.max.glob_pos = element.hitbox.x1 + element.slider.max.ele_pos
+
+    local static_ass = assdraw.ass_new()
+    static_ass:draw_start()
+
+    -- a hack which prepares the whole slider area to allow center placements such like an=5
+    static_ass:rect_cw(0, 0, elem_geo.w, elem_geo.h)
+    static_ass:rect_ccw(0, 0, elem_geo.w, elem_geo.h)
+
+    element.static_ass = static_ass
+
+    -- Invalidate segment cache on slider geometry/duration changes
+    seekbar_segments_cache.w = nil
+end
+
 -- Helper to draw rounded/flat rectangles
 local function draw_rect(ass, x1, y1, x2, y2, r_left, r_right, r)
     local w = x2 - x1
@@ -813,23 +836,11 @@ local function prepare_elements()
                 static_ass:round_rect_cw(0, 0, elem_geo.w, elem_geo.h, element.layout.box.radius)
             end
             static_ass:draw_stop()
+            element.static_ass = static_ass
 
         elseif element.type == "slider" then
-            --draw static slider parts
-            local slider_lo = element.layout.slider
-            -- calculate positions of min and max points
-            element.slider.min.ele_pos = slider_lo.border
-            element.slider.max.ele_pos = elem_geo.w - element.slider.min.ele_pos
-            element.slider.min.glob_pos = element.hitbox.x1 + element.slider.min.ele_pos
-            element.slider.max.glob_pos = element.hitbox.x1 + element.slider.max.ele_pos
-
-            static_ass:draw_start()
-            -- a hack which prepares the whole slider area to allow center placements such like an=5
-            static_ass:rect_cw(0, 0, elem_geo.w, elem_geo.h)
-            static_ass:rect_ccw(0, 0, elem_geo.w, elem_geo.h)
+            update_slider(element)
         end
-
-        element.static_ass = static_ass
 
         -- if the element is supposed to be disabled,
         -- style it accordingly and kill the eventresponders
@@ -2478,8 +2489,9 @@ mp.register_event("seek", function()
     end
 end)
 observe_cached("duration", function ()
-    if user_opts.livemarkers and state.chapter_list[1] then
-        request_init()
+    if state.chapter_list[1] and state.slider_element then
+        update_slider(state.slider_element)
+        request_tick()
     end
 end)
 mp.observe_property("seeking", "native", function(_, seeking)
