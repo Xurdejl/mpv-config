@@ -36,7 +36,6 @@ local user_opts = {
     window_top_bar = "auto",               -- show OSC window top bar: "auto", "yes", or "no" (borderless/fullscreen)
     window_title = false,                  -- show window title in borderless/fullscreen mode
 
-    speed_button = false,                  -- show speed control button
     audio_button = false,                  -- show audio track button (only if more than 1 audio track exists)
 
     seekrange = true,                      -- show seek range overlay
@@ -1599,12 +1598,10 @@ local function layout_default()
     lo.style = osc_styles.buttons
     end_x = end_x - 55
 
-    if user_opts.speed_button then
-        lo = add_layout("speed")
-        lo.geometry = {x = end_x, y = ref_y - 38, an = 5, w = 24, h = 24}
-        lo.style = osc_styles.buttons
-        end_x = end_x - 55
-    end
+    lo = add_layout("speed")
+    lo.geometry = {x = end_x, y = ref_y - 38, an = 5, w = 24, h = 24}
+    lo.style = osc_styles.buttons
+    end_x = end_x - 55
 end
 
 
@@ -1873,6 +1870,7 @@ local function create_elements()
 
     --speed
     ne = new_element("speed", "button")
+    ne.visible = (state.speed or 1) ~= 1
     ne.content = function()
         return "x" .. string.format("%g", state.speed or 1)
     end
@@ -2513,7 +2511,7 @@ end)
 
 mp.observe_property("display-fps", "number", set_tick_delay)
 observe_cached("pause", request_tick)
-observe_cached("speed", request_tick)
+observe_cached("speed", request_init)
 observe_cached("volume", request_tick)
 observe_cached("mute", request_tick)
 observe_cached("chapter", request_tick)
