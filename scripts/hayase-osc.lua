@@ -2510,7 +2510,6 @@ mp.add_hook("on_unload", 50, function()
 end)
 
 mp.observe_property("display-fps", "number", set_tick_delay)
-observe_cached("pause", request_tick)
 observe_cached("speed", request_init)
 observe_cached("volume", request_tick)
 observe_cached("mute", request_tick)
@@ -2638,32 +2637,30 @@ local function idlescreen_visibility(mode, no_osd)
     request_tick()
 end
 
-observe_cached("pause", function()
-    request_tick()
-
-    if user_opts.visibility ~= "never" then
-        state.enabled = state.pause
-        if state.pause then
-            if user_opts.keeponpause then
-                -- save mode if a temporary change is needed
-                if not state.temp_visibility_mode and user_opts.visibility ~= "always" then
-                    state.temp_visibility_mode = user_opts.visibility
-                end
-                -- force visibility to "always" while paused
-                visibility_mode("always", true)
-            end
-        else
-            -- restore mode if it was changed temporarily
-            if state.temp_visibility_mode then
-                visibility_mode(state.temp_visibility_mode, true)
-                state.temp_visibility_mode = nil
-            else
-                -- respect "always" mode on unpause
-                visibility_mode(user_opts.visibility, true)
-            end
-        end
+local function force_visibility(mode)
+    if not state.temp_visibility_mode then
+        state.temp_visibility_mode = user_opts.visibility
     end
-end)
+    visibility_mode(mode, true)
+end
+
+local function restore_visibility()
+    visibility_mode(state.temp_visibility_mode or user_opts.visibility, true)
+    state.temp_visibility_mode = nil
+end
+
+local function handle_pause_visibility()
+    request_tick()
+    if user_opts.visibility == "never" then return end
+    state.enabled = state.pause
+    if state.pause and user_opts.keeponpause then
+        force_visibility("always")
+    elseif not state.pause then
+        restore_visibility()
+    end
+end
+
+observe_cached("pause", handle_pause_visibility)
 
 mp.register_script_message("osc-visibility", visibility_mode)
 mp.register_script_message("osc-show", show_osc)
