@@ -4,7 +4,7 @@
 
 <p align="center"><samp>「 These are my personal opinionated MPV settings. 」</samp></p>
 
-![img](https://i.imgur.com/7COFhYY.png)
+![img](https://github.com/user-attachments/assets/f5b67fe1-931b-47f2-9139-21c55b19d7e8)
 
 ## 🌨️ Shaders
 
@@ -13,7 +13,7 @@
 
 ## 🔮 Scripts
 
-- **[hayase-osc](https://github.com/nekoxuee/hayase-osc)** - Custom OSC skin inspired by [hayase.watch](https://hayase.watch)'s UI _(forked from [ModernZ](https://github.com/Samillion/ModernZ))_.
+- **[hayase-osc](https://github.com/nekoxuee/hayase-osc)** - Custom OSC skin inspired by [hayase.watch](https://hayase.watch)'s UI.
 
 - **[evafast](https://github.com/po5/evafast)** - Fast-forwarding and seeking on a single key, with quality of life features like a slight slowdown when subtitles are shown.
 
